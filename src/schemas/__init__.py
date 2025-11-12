@@ -16,6 +16,7 @@ from src.schemas.accounts import (
     MessageResponseSchema,
     PasswordResetRequestSchema,
     PasswordResetCompleteRequestSchema,
+    ChangePasswordRequestSchema,
     UserLoginResponseSchema,
     UserLoginRequestSchema,
     TokenRefreshRequestSchema,

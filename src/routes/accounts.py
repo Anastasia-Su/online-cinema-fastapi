@@ -1,4 +1,6 @@
-from datetime import datetime, timezone
+import asyncio
+from datetime import datetime, timezone, timedelta
+import aioredis
 from typing import cast
 
 from fastapi import APIRouter, Depends, status, HTTPException
@@ -6,6 +8,7 @@ from sqlalchemy import select, delete
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from src.config import (
     get_jwt_auth_manager,
@@ -31,12 +34,19 @@ from src.schemas import (
     UserActivationRequestSchema,
     PasswordResetRequestSchema,
     PasswordResetCompleteRequestSchema,
+    ChangePasswordRequestSchema,
     UserLoginResponseSchema,
     UserLoginRequestSchema,
     TokenRefreshRequestSchema,
     TokenRefreshResponseSchema,
 )
 from src.security.interfaces import JWTAuthManagerInterface
+
+from src.tasks.redis_blacklist import revoke_token, is_token_revoked, list_revoked_tokens, get_redis
+from fastapi.security import OAuth2PasswordBearer
+# oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/accounts/login/")
+bearer_scheme = HTTPBearer(auto_error=False)
+
 
 router = APIRouter(prefix="/accounts", tags=["accounts"])
 
@@ -132,7 +142,7 @@ async def register_user(
             detail="An error occurred during user creation.",
         ) from e
     else:
-        activation_link = "http://127.0.0.1/accounts/activate/"
+        activation_link = f"http://127.0.0.1/accounts/activate/?email={new_user.email}&token={activation_token.token}"
 
         await email_sender.send_activation_email(new_user.email, activation_link)
 
@@ -150,11 +160,11 @@ async def resend_activation(
     user = result.scalars().first()
     # always return same message to avoid user enumeration
     if not user:
-        return MessageResponseSchema(message="If you are registered, you will receive an email with instructions.")
+        return MessageResponseSchema(message="This user is not registered.")
 
     # If user is already active — nothing to resend
     if user.is_active:
-        return MessageResponseSchema(message="If you are registered, you will receive an email with instructions.")
+        return MessageResponseSchema(message="This user is already active.")
 
     # Delete old activation token(s) and create new one
     await db.execute(delete(ActivationTokenModel).where(ActivationTokenModel.user_id == user.id))
@@ -163,7 +173,7 @@ async def resend_activation(
     await db.commit()
     activation_link = f"http://127.0.0.1:8000/accounts/activate/?email={user.email}&token={new_token.token}"
     await email_sender.send_activation_email(user.email, activation_link)
-    return MessageResponseSchema(message="If you are registered, you will receive an email with instructions.")
+    return MessageResponseSchema(message="You will receive an email with instructions.")
 
 
 @router.post(
@@ -232,6 +242,7 @@ async def activate_account(
     token_record = result.scalars().first()
 
     now_utc = datetime.now(timezone.utc)
+    # expires_at = cast(datetime, original_default).replace(tzinfo=timezone.utc)
     if (
         not token_record
         or cast(datetime, token_record.expires_at).replace(tzinfo=timezone.utc)
@@ -263,6 +274,65 @@ async def activate_account(
     )
 
     return MessageResponseSchema(message="User account activated successfully.")
+
+
+@router.post("/logout", status_code=204)
+async def logout_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
+    db: AsyncSession = Depends(get_db),
+    redis: aioredis.Redis = Depends(get_redis),
+):
+    """Invalidate current user's access token."""
+    
+    if credentials:
+        token = credentials.credentials
+    try:
+        payload = jwt_manager.decode_access_token(token)
+        expires_at = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
+    except:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    user_id = payload.get("user_id")
+    await db.execute(
+        delete(RefreshTokenModel).where(RefreshTokenModel.user_id == user_id)
+    )
+    await db.commit()
+
+
+    if await is_token_revoked(token, redis):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token is revoked.")
+    
+    try:
+        await revoke_token(token, expires_at, redis)
+        revoked_tokens = asyncio.run(list_revoked_tokens())
+        print("revoked_tokens_list", revoked_tokens) 
+        
+        return MessageResponseSchema(message="Successfully logged out.")
+    except Exception as e:
+        return MessageResponseSchema(message=str(e))
+        
+
+
+@router.post("/change-password/", response_model=MessageResponseSchema)
+async def change_password(
+    data: ChangePasswordRequestSchema,
+    db: AsyncSession = Depends(get_db),
+):
+    
+    stmt = select(UserModel).filter_by(email=data.email)
+    result = await db.execute(stmt)
+    user = result.scalars().first()
+    
+    if not user.verify_password(data.old_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Old password is incorrect."
+        )
+
+    user.password = data.new_password
+    await db.commit()
+    return MessageResponseSchema(message="Password updated successfully.")
 
 
 @router.post(
@@ -300,7 +370,7 @@ async def request_password_reset_token(
 
     if not user or not user.is_active:
         return MessageResponseSchema(
-            message="If you are registered, you will receive an email with instructions."
+            message="A user does not exist or not active."
         )
 
     await db.execute(
@@ -408,6 +478,8 @@ async def reset_password(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid email or token."
         )
 
+    # original_default = datetime.now(timezone.utc) + timedelta(minutes=3)
+    # expires_at = cast(datetime, original_default).replace(tzinfo=timezone.utc)
     expires_at = cast(datetime, token_record.expires_at).replace(tzinfo=timezone.utc)
     if expires_at < datetime.now(timezone.utc):
         await db.run_sync(lambda s: s.delete(token_record))
@@ -515,6 +587,8 @@ async def login_user(
     jwt_refresh_token = jwt_manager.create_refresh_token({"user_id": user.id})
 
     try:
+        await db.execute(delete(RefreshTokenModel).where(RefreshTokenModel.user_id == user.id))
+
         refresh_token = RefreshTokenModel.create(
             user_id=user.id,
             days_valid=settings.LOGIN_TIME_DAYS,

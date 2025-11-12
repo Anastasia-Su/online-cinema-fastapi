@@ -170,3 +170,8 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Celery Beat schedule files
+celerybeat-schedule
+celerybeat-schedule.*
+*.celerybeat-schedule.*

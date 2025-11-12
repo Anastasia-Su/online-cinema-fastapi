@@ -31,6 +31,12 @@ class PasswordResetRequestSchema(BaseModel):
 
 class PasswordResetCompleteRequestSchema(BaseEmailPasswordSchema):
     token: str
+    
+    
+class ChangePasswordRequestSchema(BaseModel):
+    email: EmailStr
+    old_password: str
+    new_password: str
 
 
 class UserLoginRequestSchema(BaseEmailPasswordSchema):
