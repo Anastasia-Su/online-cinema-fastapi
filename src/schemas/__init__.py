@@ -3,5 +3,21 @@ from src.schemas.movies import (
     MovieListResponseSchema,
     MovieListItemSchema,
     MovieCreateSchema,
-    MovieUpdateSchema
+    MovieUpdateSchema,
+    
+)
+
+from src.schemas.genres import GenreListResponseSchema, GenreCountSchema
+
+from src.schemas.accounts import (
+    UserRegistrationRequestSchema,
+    UserRegistrationResponseSchema,
+    UserActivationRequestSchema,
+    MessageResponseSchema,
+    PasswordResetRequestSchema,
+    PasswordResetCompleteRequestSchema,
+    UserLoginResponseSchema,
+    UserLoginRequestSchema,
+    TokenRefreshRequestSchema,
+    TokenRefreshResponseSchema
 )

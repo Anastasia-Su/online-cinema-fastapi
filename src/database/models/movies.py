@@ -12,6 +12,8 @@ from sqlalchemy import (
     ForeignKey,
     Table,
     Column,
+    Index,
+    func,
 )
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 
@@ -33,6 +35,8 @@ MovieGenreModel = Table(
         primary_key=True,
         nullable=False,
     ),
+    Index("idx_movie_genres_movie_id", "movie_id"),
+    Index("idx_movie_genres_genre_id", "genre_id"),
 )
 
 MovieStarModel = Table(
@@ -50,6 +54,7 @@ MovieStarModel = Table(
         primary_key=True,
         nullable=False,
     ),
+    Index("idx_movie_stars_movie_id", "movie_id"),
 )
 
 MovieDirectorModel = Table(
@@ -67,6 +72,7 @@ MovieDirectorModel = Table(
         primary_key=True,
         nullable=False,
     ),
+    Index("idx_movie_directors_movie_id", "movie_id"),
 )
 
 
@@ -78,6 +84,15 @@ class GenreModel(Base):
 
     movies: Mapped[list["MovieModel"]] = relationship(
         "MovieModel", secondary=MovieGenreModel, back_populates="genres"
+    )
+
+    __table_args__ = (
+        Index(
+            "idx_genres_name_trgm",
+            func.lower(name),
+            postgresql_using="gin",
+            postgresql_ops={"lower(name)": "gin_trgm_ops"},
+        ),
     )
 
     def __repr__(self):
@@ -148,8 +163,7 @@ class MovieModel(Base):
     )
 
     certification: Mapped["CertificationModel"] = relationship(
-        "CertificationModel",
-        back_populates="movies"
+        "CertificationModel", back_populates="movies"
     )
 
     genres: Mapped[list["GenreModel"]] = relationship(
@@ -161,12 +175,21 @@ class MovieModel(Base):
     )
 
     directors: Mapped[list["DirectorModel"]] = relationship(
-        "DirectorModel",
-        secondary=MovieDirectorModel,
-        back_populates="movies"
+        "DirectorModel", secondary=MovieDirectorModel, back_populates="movies"
     )
 
-    __table_args__ = (UniqueConstraint("name", "year", "time", name="unique_movie_constraint"),)
+    __table_args__ = (
+        UniqueConstraint("name", "year", "time", name="unique_movie_constraint"),
+        Index(
+            "idx_movies_name_trgm",
+            func.lower(name),
+            postgresql_using="gin",
+            postgresql_ops={"lower(name)": "gin_trgm_ops"},
+        ),
+        Index("idx_movies_year", "year"),
+        Index("idx_movies_imdb", "imdb"),
+        Index("idx_movies_price", "price"),
+    )
 
     def __repr__(self):
         return (
