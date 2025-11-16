@@ -1,12 +1,18 @@
 import os
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
 
 from src.config.settings import TestingSettings, Settings, BaseAppSettings
 from src.notifications import EmailSenderInterface, EmailSender
 from src.security.interfaces import JWTAuthManagerInterface
 from src.security.token_manager import JWTAuthManager
-# from storages import S3StorageInterface, S3StorageClient
+from src.storages import S3StorageInterface, S3StorageClient
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from src.tasks.redis_blacklist import get_redis, is_token_revoked
+from src.exceptions import TokenExpiredError, InvalidTokenError
+
+
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def get_settings() -> BaseAppSettings:
@@ -42,13 +48,38 @@ def get_accounts_email_notificator(
     )
 
 
-# def get_s3_storage_client(
-#     settings: BaseAppSettings = Depends(get_settings)
-# ) -> S3StorageInterface:
+def get_s3_storage_client(
+    settings: BaseAppSettings = Depends(get_settings)
+) -> S3StorageInterface:
     
-#     return S3StorageClient(
-#         endpoint_url=settings.S3_STORAGE_ENDPOINT,
-#         access_key=settings.S3_STORAGE_ACCESS_KEY,
-#         secret_key=settings.S3_STORAGE_SECRET_KEY,
-#         bucket_name=settings.S3_BUCKET_NAME
-#     )
+    return S3StorageClient(
+        endpoint_url=settings.S3_STORAGE_ENDPOINT,
+        access_key=settings.S3_STORAGE_ACCESS_KEY,
+        secret_key=settings.S3_STORAGE_SECRET_KEY,
+        bucket_name=settings.S3_BUCKET_NAME
+    )
+
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
+    redis = Depends(get_redis),
+):
+    token = credentials.credentials if credentials else None
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token")
+
+    if await is_token_revoked(token, redis):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token revoked")
+
+    try:
+        payload = jwt_manager.decode_access_token(token)
+    except TokenExpiredError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    except Exception as e:
+        # Log this! Unexpected error
+        raise HTTPException(status_code=401, detail="Token validation failed") from e
+    print("payload", payload)
+    return payload  

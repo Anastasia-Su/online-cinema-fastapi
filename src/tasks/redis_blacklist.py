@@ -1,7 +1,7 @@
 # src/redis.py
 from fastapi import Depends
 import aioredis
-from src.config import get_settings
+# from src.config import get_settings
 from datetime import datetime, timezone
 
 _redis: aioredis.Redis | None = None
@@ -10,7 +10,7 @@ async def get_redis() -> aioredis.Redis:
     """Get shared Redis connection (lazy init)."""
     global _redis
     if _redis is None:
-        settings = get_settings()
+        # settings = get_settings()
         _redis = aioredis.from_url(
             "redis://localhost:6379",  # "redis://localhost:6379"
             decode_responses=True,

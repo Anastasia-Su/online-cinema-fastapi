@@ -8,7 +8,8 @@ from src.database.models.accounts import (
     ActivationTokenModel,
     PasswordResetTokenModel,
     RefreshTokenModel,
-    UserProfileModel
+    UserProfileModel,
+    GenderEnum
 )
 from src.database.models.movies import (
     MovieModel,
@@ -22,6 +23,7 @@ from src.database.models.movies import (
 )
 # from database.session_sqlite import reset_sqlite_database as reset_database
 from src.database.validators import accounts as accounts_validators
+from src.database.validators import profiles as profile_validators
 
 # environment = os.getenv("ENVIRONMENT", "developing")
 

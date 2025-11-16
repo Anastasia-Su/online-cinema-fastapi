@@ -34,9 +34,15 @@ class PasswordResetCompleteRequestSchema(BaseEmailPasswordSchema):
     
     
 class ChangePasswordRequestSchema(BaseModel):
-    email: EmailStr
     old_password: str
     new_password: str
+    
+    model_config: ConfigDict = ConfigDict(from_attributes=True)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password(cls, value):
+        return accounts_validators.validate_password_strength(value)
 
 
 class UserLoginRequestSchema(BaseEmailPasswordSchema):

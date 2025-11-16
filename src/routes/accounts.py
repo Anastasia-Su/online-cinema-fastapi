@@ -3,7 +3,8 @@ from datetime import datetime, timezone, timedelta
 import aioredis
 from typing import cast
 
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, Response, Query, Form
+from pydantic import EmailStr
 from sqlalchemy import select, delete
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +16,7 @@ from src.config import (
     get_settings,
     BaseAppSettings,
     get_accounts_email_notificator,
+    get_current_user
 )
 from src.database import (
     get_db,
@@ -176,27 +178,34 @@ async def resend_activation(
     return MessageResponseSchema(message="You will receive an email with instructions.")
 
 
-@router.post(
+@router.get(
     "/activate/",
     response_model=MessageResponseSchema,
-    summary="Activate User Account",
-    description="Activate a user's account using their email and activation token.",
+    summary="Activate user account via email link",
+    description="Validates activation token from URL and activates the user.",
     status_code=status.HTTP_200_OK,
     responses={
+        200: {
+            "description": "Account activated successfully",
+            "content": {
+                "application/json": {
+                    "example": {"message": "Account activated. Please log in."}
+                }
+            },
+        },
         400: {
-            "description": "Bad Request - The activation token is invalid or expired, "
-            "or the user account is already active.",
+            "description": "Invalid, expired, or already used token",
             "content": {
                 "application/json": {
                     "examples": {
                         "invalid_token": {
-                            "summary": "Invalid Token",
-                            "value": {"detail": "Invalid or expired activation token."},
+                            "summary": "Invalid or expired token",
+                            "value": {"detail": "Invalid or expired activation token."}
                         },
                         "already_active": {
-                            "summary": "Account Already Active",
-                            "value": {"detail": "User account is already active."},
-                        },
+                            "summary": "Account already active",
+                            "value": {"detail": "User account is already active."}
+                        }
                     }
                 }
             },
@@ -204,82 +213,144 @@ async def resend_activation(
     },
 )
 async def activate_account(
-    activation_data: UserActivationRequestSchema,
+    email: EmailStr = Query(...),
+    token: str = Query(...),
     db: AsyncSession = Depends(get_db),
     email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
-) -> MessageResponseSchema:
-    """
-    Endpoint to activate a user's account.
-
-    This endpoint verifies the activation token for a user by checking that the token record exists
-    and that it has not expired. If the token is valid and the user's account is not already active,
-    the user's account is activated and the activation token is deleted. If the token is invalid, expired,
-    or if the account is already active, an HTTP 400 error is raised.
-
-    Args:
-        activation_data (UserActivationRequestSchema): Contains the user's email and activation token.
-        db (AsyncSession): The asynchronous database session.
-        email_sender (EmailSenderInterface): The asynchronous email sender.
-
-    Returns:
-        MessageResponseSchema: A response message confirming successful activation.
-
-    Raises:
-        HTTPException:
-            - 400 Bad Request if the activation token is invalid or expired.
-            - 400 Bad Request if the user account is already active.
-    """
+):
     stmt = (
         select(ActivationTokenModel)
         .options(joinedload(ActivationTokenModel.user))
         .join(UserModel)
-        .where(
-            UserModel.email == activation_data.email,
-            ActivationTokenModel.token == activation_data.token,
-        )
+        .where(UserModel.email == email, ActivationTokenModel.token == token)
     )
     result = await db.execute(stmt)
     token_record = result.scalars().first()
 
-    now_utc = datetime.now(timezone.utc)
-    # expires_at = cast(datetime, original_default).replace(tzinfo=timezone.utc)
-    if (
-        not token_record
-        or cast(datetime, token_record.expires_at).replace(tzinfo=timezone.utc)
-        < now_utc
-    ):
+    if not token_record or token_record.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
         if token_record:
             await db.delete(token_record)
             await db.commit()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired activation token.",
-        )
+        raise HTTPException(status_code=400, detail="Invalid or expired activation token.")
 
     user = token_record.user
     if user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User account is already active.",
-        )
+        raise HTTPException(status_code=400, detail="User account is already active.")
 
     user.is_active = True
     await db.delete(token_record)
     await db.commit()
 
     login_link = "http://127.0.0.1/accounts/login/"
+    await email_sender.send_activation_complete_email(email, login_link)
 
-    await email_sender.send_activation_complete_email(
-        str(activation_data.email), login_link
-    )
+    return MessageResponseSchema(message="Account activated. Please log in.")
+# @router.post(
+#     "/activate/",
+#     response_model=MessageResponseSchema,
+#     summary="Activate User Account",
+#     description="Activate a user's account using their email and activation token.",
+#     status_code=status.HTTP_200_OK,
+#     responses={
+#         400: {
+#             "description": "Bad Request - The activation token is invalid or expired, "
+#             "or the user account is already active.",
+#             "content": {
+#                 "application/json": {
+#                     "examples": {
+#                         "invalid_token": {
+#                             "summary": "Invalid Token",
+#                             "value": {"detail": "Invalid or expired activation token."},
+#                         },
+#                         "already_active": {
+#                             "summary": "Account Already Active",
+#                             "value": {"detail": "User account is already active."},
+#                         },
+#                     }
+#                 }
+#             },
+#         },
+#     },
+# )
+# async def activate_account(
+#     activation_data: UserActivationRequestSchema,
+#     db: AsyncSession = Depends(get_db),
+#     email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
+# ) -> MessageResponseSchema:
+#     """
+#     Endpoint to activate a user's account.
 
-    return MessageResponseSchema(message="User account activated successfully.")
+#     This endpoint verifies the activation token for a user by checking that the token record exists
+#     and that it has not expired. If the token is valid and the user's account is not already active,
+#     the user's account is activated and the activation token is deleted. If the token is invalid, expired,
+#     or if the account is already active, an HTTP 400 error is raised.
+
+#     Args:
+#         activation_data (UserActivationRequestSchema): Contains the user's email and activation token.
+#         db (AsyncSession): The asynchronous database session.
+#         email_sender (EmailSenderInterface): The asynchronous email sender.
+
+#     Returns:
+#         MessageResponseSchema: A response message confirming successful activation.
+
+#     Raises:
+#         HTTPException:
+#             - 400 Bad Request if the activation token is invalid or expired.
+#             - 400 Bad Request if the user account is already active.
+#     """
+#     stmt = (
+#         select(ActivationTokenModel)
+#         .options(joinedload(ActivationTokenModel.user))
+#         .join(UserModel)
+#         .where(
+#             UserModel.email == activation_data.email,
+#             ActivationTokenModel.token == activation_data.token,
+#         )
+#     )
+#     result = await db.execute(stmt)
+#     token_record = result.scalars().first()
+
+#     now_utc = datetime.now(timezone.utc)
+#     # expires_at = cast(datetime, original_default).replace(tzinfo=timezone.utc)
+#     if (
+#         not token_record
+#         or cast(datetime, token_record.expires_at).replace(tzinfo=timezone.utc)
+#         < now_utc
+#     ):
+#         if token_record:
+#             await db.delete(token_record)
+#             await db.commit()
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             detail="Invalid or expired activation token.",
+#         )
+
+#     user = token_record.user
+#     if user.is_active:
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             detail="User account is already active.",
+#         )
+
+#     user.is_active = True
+#     await db.delete(token_record)
+#     await db.commit()
+
+#     login_link = "http://127.0.0.1/accounts/login/"
+
+#     await email_sender.send_activation_complete_email(
+#         str(activation_data.email), login_link
+#     )
+
+#     return MessageResponseSchema(message="User account activated successfully.")
 
 
-@router.post("/logout", status_code=204)
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout_user(
+    user = Depends(get_current_user),
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
+    
     db: AsyncSession = Depends(get_db),
     redis: aioredis.Redis = Depends(get_redis),
 ):
@@ -289,9 +360,10 @@ async def logout_user(
         token = credentials.credentials
     try:
         payload = jwt_manager.decode_access_token(token)
+        
         expires_at = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
     except:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
     
     user_id = payload.get("user_id")
     await db.execute(
@@ -300,29 +372,39 @@ async def logout_user(
     await db.commit()
 
 
-    if await is_token_revoked(token, redis):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token is revoked.")
+    # if await is_token_revoked(token, redis):
+    #     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token is revoked.")
     
     try:
         await revoke_token(token, expires_at, redis)
-        revoked_tokens = asyncio.run(list_revoked_tokens())
+        revoked_tokens = await list_revoked_tokens()
         print("revoked_tokens_list", revoked_tokens) 
         
-        return MessageResponseSchema(message="Successfully logged out.")
-    except Exception as e:
-        return MessageResponseSchema(message=str(e))
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
         
+    except Exception as e:
+        # return MessageResponseSchema(message=str(e))
+        return HTTPException(status_code=400, detail="Logout failed")
 
 
 @router.post("/change-password/", response_model=MessageResponseSchema)
 async def change_password(
+    
     data: ChangePasswordRequestSchema,
+    user_payload = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    
 ):
     
-    stmt = select(UserModel).filter_by(email=data.email)
+    stmt = select(UserModel).filter_by(id=user_payload["user_id"])
     result = await db.execute(stmt)
     user = result.scalars().first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
     
     if not user.verify_password(data.old_password):
         raise HTTPException(
@@ -383,7 +465,7 @@ async def request_password_reset_token(
     db.add(reset_token)
     await db.commit()
 
-    password_reset_complete_link = "http://127.0.0.1/accounts/password-reset-complete/"
+    password_reset_complete_link = f"http://127.0.0.1/accounts/password-reset-complete/?token={reset_token.token}&email={data.email}"
 
     await email_sender.send_password_reset_email(
         str(data.email), password_reset_complete_link
@@ -434,7 +516,10 @@ async def request_password_reset_token(
     },
 )
 async def reset_password(
-    data: PasswordResetCompleteRequestSchema,
+    token: str = Form(...),
+    password: str = Form(...),
+    email: EmailStr = Form(...),
+    # data: PasswordResetCompleteRequestSchema,
     db: AsyncSession = Depends(get_db),
     email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
 ) -> MessageResponseSchema:
@@ -458,7 +543,7 @@ async def reset_password(
             - 400 Bad Request if the email or token is invalid, or the token has expired.
             - 500 Internal Server Error if an error occurs during the password reset process.
     """
-    stmt = select(UserModel).filter_by(email=data.email)
+    stmt = select(UserModel).filter_by(email=email)
     result = await db.execute(stmt)
     user = result.scalars().first()
     if not user or not user.is_active:
@@ -470,7 +555,7 @@ async def reset_password(
     result = await db.execute(stmt)
     token_record = result.scalars().first()
 
-    if not token_record or token_record.token != data.token:
+    if not token_record or token_record.token != token:
         if token_record:
             await db.run_sync(lambda s: s.delete(token_record))
             await db.commit()
@@ -489,7 +574,7 @@ async def reset_password(
         )
 
     try:
-        user.password = data.password
+        user.password = password
         await db.run_sync(lambda s: s.delete(token_record))
         await db.commit()
     except SQLAlchemyError:
@@ -501,7 +586,7 @@ async def reset_password(
 
     login_link = "http://127.0.0.1/accounts/login/"
 
-    await email_sender.send_password_reset_complete_email(str(data.email), login_link)
+    await email_sender.send_password_reset_complete_email(str(email), login_link)
 
     return MessageResponseSchema(message="Password reset successfully.")
 
@@ -511,7 +596,7 @@ async def reset_password(
     response_model=UserLoginResponseSchema,
     summary="User Login",
     description="Authenticate a user and return access and refresh tokens.",
-    status_code=status.HTTP_201_CREATED,
+    status_code=status.HTTP_200_OK,
     responses={
         401: {
             "description": "Unauthorized - Invalid email or password.",
