@@ -22,3 +22,10 @@ from src.schemas.accounts import (
     TokenRefreshRequestSchema,
     TokenRefreshResponseSchema
 )
+
+from src.schemas.admin import (
+    UserListSchema,
+    UserDetailSchema,
+    UserGroupUpdateSchema,
+    UserActivateSchema,
+)

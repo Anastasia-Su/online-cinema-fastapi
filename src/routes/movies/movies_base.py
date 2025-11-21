@@ -5,18 +5,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from typing import Optional
 
-from src.database import get_db, MovieModel
+
 from src.database import (
     GenreModel,
     StarModel,
     DirectorModel,
+    MovieModel,
     MovieDirectorModel,
     MovieStarModel,
     MovieGenreModel,
+    get_db
 )
 from src.schemas import MovieListResponseSchema, MovieListItemSchema, MovieDetailSchema
 from src.schemas.movies import MovieCreateSchema, MovieUpdateSchema
-from .utils import SortBy, SortOrder
+from ..utils import SortBy, SortOrder
 
 
 router = APIRouter(prefix="/movies", tags=["movies"])

@@ -13,20 +13,23 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from src.config import (
     get_jwt_auth_manager,
-    get_settings,
+    # get_settings,
     BaseAppSettings,
     get_accounts_email_notificator,
-    get_current_user
+    # get_current_user,
 )
+from src.config.get_settings import get_settings
 from src.database import (
     get_db,
-    UserModel,
+    get_current_user,
     UserGroupModel,
     UserGroupEnum,
     ActivationTokenModel,
     PasswordResetTokenModel,
     RefreshTokenModel,
+    UserModel,
 )
+
 from src.exceptions import BaseSecurityError
 from src.notifications import EmailSenderInterface
 from src.schemas import (
@@ -44,8 +47,14 @@ from src.schemas import (
 )
 from src.security.interfaces import JWTAuthManagerInterface
 
-from src.tasks.redis_blacklist import revoke_token, is_token_revoked, list_revoked_tokens, get_redis
+from src.tasks.redis_blacklist import (
+    revoke_token,
+    is_token_revoked,
+    list_revoked_tokens,
+    get_redis,
+)
 from fastapi.security import OAuth2PasswordBearer
+
 # oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/accounts/login/")
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -169,7 +178,9 @@ async def resend_activation(
         return MessageResponseSchema(message="This user is already active.")
 
     # Delete old activation token(s) and create new one
-    await db.execute(delete(ActivationTokenModel).where(ActivationTokenModel.user_id == user.id))
+    await db.execute(
+        delete(ActivationTokenModel).where(ActivationTokenModel.user_id == user.id)
+    )
     new_token = ActivationTokenModel(user_id=user.id)
     db.add(new_token)
     await db.commit()
@@ -200,12 +211,12 @@ async def resend_activation(
                     "examples": {
                         "invalid_token": {
                             "summary": "Invalid or expired token",
-                            "value": {"detail": "Invalid or expired activation token."}
+                            "value": {"detail": "Invalid or expired activation token."},
                         },
                         "already_active": {
                             "summary": "Account already active",
-                            "value": {"detail": "User account is already active."}
-                        }
+                            "value": {"detail": "User account is already active."},
+                        },
                     }
                 }
             },
@@ -227,11 +238,15 @@ async def activate_account(
     result = await db.execute(stmt)
     token_record = result.scalars().first()
 
-    if not token_record or token_record.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+    if not token_record or token_record.expires_at.replace(
+        tzinfo=timezone.utc
+    ) < datetime.now(timezone.utc):
         if token_record:
             await db.delete(token_record)
             await db.commit()
-        raise HTTPException(status_code=400, detail="Invalid or expired activation token.")
+        raise HTTPException(
+            status_code=400, detail="Invalid or expired activation token."
+        )
 
     user = token_record.user
     if user.is_active:
@@ -245,143 +260,45 @@ async def activate_account(
     await email_sender.send_activation_complete_email(email, login_link)
 
     return MessageResponseSchema(message="Account activated. Please log in.")
-# @router.post(
-#     "/activate/",
-#     response_model=MessageResponseSchema,
-#     summary="Activate User Account",
-#     description="Activate a user's account using their email and activation token.",
-#     status_code=status.HTTP_200_OK,
-#     responses={
-#         400: {
-#             "description": "Bad Request - The activation token is invalid or expired, "
-#             "or the user account is already active.",
-#             "content": {
-#                 "application/json": {
-#                     "examples": {
-#                         "invalid_token": {
-#                             "summary": "Invalid Token",
-#                             "value": {"detail": "Invalid or expired activation token."},
-#                         },
-#                         "already_active": {
-#                             "summary": "Account Already Active",
-#                             "value": {"detail": "User account is already active."},
-#                         },
-#                     }
-#                 }
-#             },
-#         },
-#     },
-# )
-# async def activate_account(
-#     activation_data: UserActivationRequestSchema,
-#     db: AsyncSession = Depends(get_db),
-#     email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
-# ) -> MessageResponseSchema:
-#     """
-#     Endpoint to activate a user's account.
-
-#     This endpoint verifies the activation token for a user by checking that the token record exists
-#     and that it has not expired. If the token is valid and the user's account is not already active,
-#     the user's account is activated and the activation token is deleted. If the token is invalid, expired,
-#     or if the account is already active, an HTTP 400 error is raised.
-
-#     Args:
-#         activation_data (UserActivationRequestSchema): Contains the user's email and activation token.
-#         db (AsyncSession): The asynchronous database session.
-#         email_sender (EmailSenderInterface): The asynchronous email sender.
-
-#     Returns:
-#         MessageResponseSchema: A response message confirming successful activation.
-
-#     Raises:
-#         HTTPException:
-#             - 400 Bad Request if the activation token is invalid or expired.
-#             - 400 Bad Request if the user account is already active.
-#     """
-#     stmt = (
-#         select(ActivationTokenModel)
-#         .options(joinedload(ActivationTokenModel.user))
-#         .join(UserModel)
-#         .where(
-#             UserModel.email == activation_data.email,
-#             ActivationTokenModel.token == activation_data.token,
-#         )
-#     )
-#     result = await db.execute(stmt)
-#     token_record = result.scalars().first()
-
-#     now_utc = datetime.now(timezone.utc)
-#     # expires_at = cast(datetime, original_default).replace(tzinfo=timezone.utc)
-#     if (
-#         not token_record
-#         or cast(datetime, token_record.expires_at).replace(tzinfo=timezone.utc)
-#         < now_utc
-#     ):
-#         if token_record:
-#             await db.delete(token_record)
-#             await db.commit()
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST,
-#             detail="Invalid or expired activation token.",
-#         )
-
-#     user = token_record.user
-#     if user.is_active:
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST,
-#             detail="User account is already active.",
-#         )
-
-#     user.is_active = True
-#     await db.delete(token_record)
-#     await db.commit()
-
-#     login_link = "http://127.0.0.1/accounts/login/"
-
-#     await email_sender.send_activation_complete_email(
-#         str(activation_data.email), login_link
-#     )
-
-#     return MessageResponseSchema(message="User account activated successfully.")
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout_user(
-    user = Depends(get_current_user),
+    _=Depends(get_current_user),
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
-    
     db: AsyncSession = Depends(get_db),
     redis: aioredis.Redis = Depends(get_redis),
 ):
     """Invalidate current user's access token."""
-    
+
     if credentials:
         token = credentials.credentials
     try:
         payload = jwt_manager.decode_access_token(token)
-        
+
         expires_at = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
     except:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
-    
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized"
+        )
+
     user_id = payload.get("user_id")
     await db.execute(
         delete(RefreshTokenModel).where(RefreshTokenModel.user_id == user_id)
     )
     await db.commit()
 
-
     # if await is_token_revoked(token, redis):
     #     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token is revoked.")
-    
+
     try:
         await revoke_token(token, expires_at, redis)
         revoked_tokens = await list_revoked_tokens()
-        print("revoked_tokens_list", revoked_tokens) 
-        
+        print("revoked_tokens_list", revoked_tokens)
+
         return Response(status_code=status.HTTP_204_NO_CONTENT)
-        
+
     except Exception as e:
         # return MessageResponseSchema(message=str(e))
         return HTTPException(status_code=400, detail="Logout failed")
@@ -389,27 +306,14 @@ async def logout_user(
 
 @router.post("/change-password/", response_model=MessageResponseSchema)
 async def change_password(
-    
     data: ChangePasswordRequestSchema,
-    user_payload = Depends(get_current_user),
+    user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-    
-):
-    
-    stmt = select(UserModel).filter_by(id=user_payload["user_id"])
-    result = await db.execute(stmt)
-    user = result.scalars().first()
-    
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    
+) -> MessageResponseSchema:
+
     if not user.verify_password(data.old_password):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Old password is incorrect."
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Old password is incorrect."
         )
 
     user.password = data.new_password
@@ -451,9 +355,7 @@ async def request_password_reset_token(
     user = result.scalars().first()
 
     if not user or not user.is_active:
-        return MessageResponseSchema(
-            message="A user does not exist or not active."
-        )
+        return MessageResponseSchema(message="A user does not exist or not active.")
 
     await db.execute(
         delete(PasswordResetTokenModel).where(
@@ -672,7 +574,9 @@ async def login_user(
     jwt_refresh_token = jwt_manager.create_refresh_token({"user_id": user.id})
 
     try:
-        await db.execute(delete(RefreshTokenModel).where(RefreshTokenModel.user_id == user.id))
+        await db.execute(
+            delete(RefreshTokenModel).where(RefreshTokenModel.user_id == user.id)
+        )
 
         refresh_token = RefreshTokenModel.create(
             user_id=user.id,

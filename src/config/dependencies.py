@@ -1,8 +1,11 @@
 import os
 
 from fastapi import Depends, HTTPException, status
-
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from src.config.settings import TestingSettings, Settings, BaseAppSettings
+# from src.database import get_db, UserModel
+from src.config.get_settings import get_settings
 from src.notifications import EmailSenderInterface, EmailSender
 from src.security.interfaces import JWTAuthManagerInterface
 from src.security.token_manager import JWTAuthManager
@@ -15,25 +18,27 @@ from src.exceptions import TokenExpiredError, InvalidTokenError
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
-def get_settings() -> BaseAppSettings:
-    environment = os.getenv("ENVIRONMENT", "developing")
-    if environment == "testing":
-        return TestingSettings()
-    return Settings()
+# def get_settings() -> BaseAppSettings:
+#     environment = os.getenv("ENVIRONMENT", "developing")
+#     if environment == "testing":
+#         return TestingSettings()
+#     return Settings()
 
 
-def get_jwt_auth_manager(settings: BaseAppSettings = Depends(get_settings)) -> JWTAuthManagerInterface:
+def get_jwt_auth_manager(
+    settings: BaseAppSettings = Depends(get_settings),
+) -> JWTAuthManagerInterface:
     return JWTAuthManager(
         secret_key_access=settings.SECRET_KEY_ACCESS,
         secret_key_refresh=settings.SECRET_KEY_REFRESH,
-        algorithm=settings.JWT_SIGNING_ALGORITHM
+        algorithm=settings.JWT_SIGNING_ALGORITHM,
     )
 
 
 def get_accounts_email_notificator(
-    settings: BaseAppSettings = Depends(get_settings)
+    settings: BaseAppSettings = Depends(get_settings),
 ) -> EmailSenderInterface:
-    
+
     return EmailSender(
         hostname=settings.EMAIL_HOST,
         port=settings.EMAIL_PORT,
@@ -44,42 +49,51 @@ def get_accounts_email_notificator(
         activation_email_template_name=settings.ACTIVATION_EMAIL_TEMPLATE_NAME,
         activation_complete_email_template_name=settings.ACTIVATION_COMPLETE_EMAIL_TEMPLATE_NAME,
         password_email_template_name=settings.PASSWORD_RESET_TEMPLATE_NAME,
-        password_complete_email_template_name=settings.PASSWORD_RESET_COMPLETE_TEMPLATE_NAME
+        password_complete_email_template_name=settings.PASSWORD_RESET_COMPLETE_TEMPLATE_NAME,
     )
 
 
 def get_s3_storage_client(
-    settings: BaseAppSettings = Depends(get_settings)
+    settings: BaseAppSettings = Depends(get_settings),
 ) -> S3StorageInterface:
-    
+
     return S3StorageClient(
         endpoint_url=settings.S3_STORAGE_ENDPOINT,
         access_key=settings.S3_STORAGE_ACCESS_KEY,
         secret_key=settings.S3_STORAGE_SECRET_KEY,
-        bucket_name=settings.S3_BUCKET_NAME
+        bucket_name=settings.S3_BUCKET_NAME,
     )
 
 
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
-    jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
-    redis = Depends(get_redis),
-):
-    token = credentials.credentials if credentials else None
-    if not token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token")
+# async def get_current_user(
+#     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+#     jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
+#     redis=Depends(get_redis),
+#     db: AsyncSession = Depends(get_db),
+# ) -> UserModel:
+#     token = credentials.credentials if credentials else None
+#     if not token:
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token"
+#         )
 
-    if await is_token_revoked(token, redis):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token revoked")
+#     if await is_token_revoked(token, redis):
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED, detail="Token revoked"
+#         )
 
-    try:
-        payload = jwt_manager.decode_access_token(token)
-    except TokenExpiredError:
-        raise HTTPException(status_code=401, detail="Token has expired")
-    except InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    except Exception as e:
-        # Log this! Unexpected error
-        raise HTTPException(status_code=401, detail="Token validation failed") from e
-    print("payload", payload)
-    return payload  
+#     try:
+#         payload = jwt_manager.decode_access_token(token)
+#     except TokenExpiredError:
+#         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired")
+#     except InvalidTokenError:
+#         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+#     except Exception as e:
+#         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token validation failed") from e
+#     print("payload", payload)
+    
+#     user_id = payload.get("user_id")
+    
+#     result = await db.execute(select(UserModel).where(UserModel.id == user_id))
+#     user = result.scalars().first()
+#     return user

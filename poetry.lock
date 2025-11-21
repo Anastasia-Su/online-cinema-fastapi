@@ -928,6 +928,21 @@ standard = ["email-validator (>=2.0.0)", "fastapi-cli[standard] (>=0.0.8)", "htt
 standard-no-fastapi-cloud-cli = ["email-validator (>=2.0.0)", "fastapi-cli[standard-no-fastapi-cloud-cli] (>=0.0.8)", "httpx (>=0.23.0,<1.0.0)", "jinja2 (>=3.1.5)", "python-multipart (>=0.0.18)", "uvicorn[standard] (>=0.12.0)"]
 
 [[package]]
+name = "fastapi-swagger-dark"
+version = "0.0.8"
+description = "FastAPI plugin to add dark theme swagger docs."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "fastapi_swagger_dark-0.0.8-py3-none-any.whl", hash = "sha256:b615ca55e7bf1108160bb2e8d88523733ed204224c01aa210630cd96649f587f"},
+    {file = "fastapi_swagger_dark-0.0.8.tar.gz", hash = "sha256:1ad2f5afc0219a3fdae26847925e4af1e52e4f066726f72462e717aadb4b9c79"},
+]
+
+[package.extras]
+dev = ["changelog-gen (>=0.12)", "fastapi", "pre-commit (>=3.7.1)", "pytest (>=7.4.3)", "pytest-asyncio (>=0.21)", "pytest-cov (>=4.1.0)", "pytest-httpx (>=0.26.0)", "pytest-random-order (>=1.0)", "rcssmin", "ruff (>=0.6.4)"]
+
+[[package]]
 name = "flake8"
 version = "7.3.0"
 description = "the modular source code checker: pep8 pyflakes and co"
@@ -2432,28 +2447,6 @@ files = [
 ]
 
 [[package]]
-name = "sqladmin"
-version = "0.21.0"
-description = "SQLAlchemy admin for FastAPI and Starlette"
-optional = false
-python-versions = ">=3.8"
-groups = ["main"]
-files = [
-    {file = "sqladmin-0.21.0-py3-none-any.whl", hash = "sha256:2b1802c49bdd3128c6452625705693cf32d5d33e7db30e63f409bd20a9c05b53"},
-    {file = "sqladmin-0.21.0.tar.gz", hash = "sha256:cb455b79eb79ef7d904680dd83817bf7750675147400b5b7cc401d04bda7ef2c"},
-]
-
-[package.dependencies]
-jinja2 = "*"
-python-multipart = "*"
-sqlalchemy = ">=1.4"
-starlette = "*"
-wtforms = ">=3.1,<3.2"
-
-[package.extras]
-full = ["itsdangerous"]
-
-[[package]]
 name = "sqlalchemy"
 version = "2.0.44"
 description = "Database Abstraction Library"
@@ -2829,24 +2822,6 @@ files = [
 ]
 
 [[package]]
-name = "wtforms"
-version = "3.1.2"
-description = "Form validation and rendering for Python web development."
-optional = false
-python-versions = ">=3.8"
-groups = ["main"]
-files = [
-    {file = "wtforms-3.1.2-py3-none-any.whl", hash = "sha256:bf831c042829c8cdbad74c27575098d541d039b1faa74c771545ecac916f2c07"},
-    {file = "wtforms-3.1.2.tar.gz", hash = "sha256:f8d76180d7239c94c6322f7990ae1216dae3659b7aa1cee94b6318bdffb474b9"},
-]
-
-[package.dependencies]
-markupsafe = "*"
-
-[package.extras]
-email = ["email-validator"]
-
-[[package]]
 name = "yarl"
 version = "1.22.0"
 description = "Yet another URL library"
@@ -2994,4 +2969,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10"
-content-hash = "ffcce0bd71e714b6f502115073e004c7f7665ac3bdcddd30a0e92e5aa882bd02"
+content-hash = "a2c113760440fdb84250bd0a75a8620a802dd09a27ec7414c955878223a9aab4"

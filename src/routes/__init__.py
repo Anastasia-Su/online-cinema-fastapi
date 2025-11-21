@@ -1,4 +1,6 @@
-from src.routes.movies import router as movie_router
+from src.routes.movies.movies_base import router as movie_base_router
+from src.routes.movies.movies_actions import router as movie_action_router
 from src.routes.genres import router as  genre_router
 from src.routes.accounts import router as accounts_router
 from src.routes.profiles import router as profiles_router
+from src.routes.admin import router as admin_router

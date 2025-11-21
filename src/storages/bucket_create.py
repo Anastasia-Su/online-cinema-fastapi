@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Depends
-from src.config import get_settings
+from src.config.get_settings import get_settings
 from src.config.settings import TestingSettings, Settings, BaseAppSettings
 import aioboto3
 

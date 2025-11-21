@@ -1,5 +1,6 @@
 import uuid as uuid_lib
 from typing import Optional
+from datetime import datetime
 
 from sqlalchemy import (
     String,
@@ -16,8 +17,11 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.orm import mapped_column, Mapped, relationship
+from sqlalchemy.ext.hybrid import hybrid_property
 
 from src.database import Base
+
+# from src.database.models.accounts import UserModel
 
 
 MovieGenreModel = Table(
@@ -177,6 +181,28 @@ class MovieModel(Base):
     directors: Mapped[list["DirectorModel"]] = relationship(
         "DirectorModel", secondary=MovieDirectorModel, back_populates="movies"
     )
+
+    favorited_by_users: Mapped[list["UserModel"]] = relationship(
+        "UserModel",
+        secondary="user_favorite_movies",
+        back_populates="favorite_movies",
+        lazy="raise",
+    )
+
+    liked_by_users: Mapped[list["UserModel"]] = relationship(
+        "UserModel",
+        secondary="MovieLikeModel",
+        back_populates="liked_movies",
+        lazy="raise",
+    )
+
+    @hybrid_property
+    def favorites_count(self) -> int:
+        return len(self.favorited_by_users) if self.favorited_by_users else 0
+    
+    @hybrid_property
+    def likes_count(self) -> int:
+        return len(self.liked_by_users) if self.liked_by_users else 0
 
     __table_args__ = (
         UniqueConstraint("name", "year", "time", name="unique_movie_constraint"),

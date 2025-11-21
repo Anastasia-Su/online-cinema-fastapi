@@ -78,6 +78,11 @@ class MovieDetailSchema(MovieBaseSchema):
     genres: list[GenreSchema]
     stars: list[StarSchema]
     directors: list[DirectorSchema]
+    
+    favorites_count: int = 0
+    user_has_favorited: bool = False
+    user_rating: Optional[int] = None  
+    user_reaction: Optional[bool] = None  
 
     model_config: ConfigDict = ConfigDict(from_attributes=True)
 
@@ -88,6 +93,8 @@ class MovieListItemSchema(BaseModel):
     year: int
     time: int
     imdb: float
+    favorites_count: int = 0
+    likes_count: int = 0
 
     model_config: ConfigDict = ConfigDict(from_attributes=True)
 

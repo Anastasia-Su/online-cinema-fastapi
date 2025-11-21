@@ -3,7 +3,8 @@ from sqlalchemy import select, func, asc, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
-from src.database import get_db, GenreModel, MovieModel, MovieGenreModel
+from src.database import get_db, GenreModel, MovieGenreModel
+from src.database.models.movies.movies_base import MovieModel
 from src.schemas import GenreListResponseSchema, GenreCountSchema, MovieListResponseSchema
 from .utils import SortBy, SortOrder
 

@@ -11,7 +11,7 @@ from src.database.models.accounts import (
     UserProfileModel,
     GenderEnum
 )
-from src.database.models.movies import (
+from src.database.models.movies.movies_base import (
     MovieModel,
     DirectorModel,
     StarModel,
@@ -21,7 +21,9 @@ from src.database.models.movies import (
     MovieStarModel,
     MovieGenreModel
 )
-# from database.session_sqlite import reset_sqlite_database as reset_database
+from src.database.models.movies.movies_actions import (
+    UserFavoriteMovieModel
+)
 from src.database.validators import accounts as accounts_validators
 from src.database.validators import profiles as profile_validators
 
@@ -36,6 +38,8 @@ from src.database.validators import profiles as profile_validators
 from src.database.session_db import (
     get_db_contextmanager,
     get_db,
+    get_current_user,
+    # get_settings,
     AsyncSessionLocal,
     sync_engine,
 )
