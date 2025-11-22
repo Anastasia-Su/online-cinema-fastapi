@@ -14,11 +14,35 @@ from src.database import (
     MovieDirectorModel,
     MovieStarModel,
     MovieGenreModel,
-    get_db
+    MovieLikeModel,
+    UserFavoriteMovieModel,
+    get_db,
 )
 from src.schemas import MovieListResponseSchema, MovieListItemSchema, MovieDetailSchema
 from src.schemas.movies import MovieCreateSchema, MovieUpdateSchema
 from ..utils import SortBy, SortOrder
+
+from sqlalchemy import select, func, literal_column
+from sqlalchemy.orm import contains_eager
+
+fav_count_subq = (
+    select(func.count(UserFavoriteMovieModel.c.user_id))
+        .where(UserFavoriteMovieModel.c.movie_id == MovieModel.id)
+        .scalar_subquery()
+)
+
+like_count_subq = (
+    select(func.count(MovieLikeModel.c.user_id))
+        .where(
+        and_(
+            MovieLikeModel.c.movie_id == MovieModel.id,
+            MovieLikeModel.c.like.is_(True)
+        )
+    )
+        .scalar_subquery()
+)
+
+
 
 
 router = APIRouter(prefix="/movies", tags=["movies"])
@@ -36,7 +60,9 @@ async def get_movie_list(
     description: Optional[str] = Query(None, description="Search by movie description"),
     actor: Optional[str] = Query(None, description="Search by actor name"),
     director: Optional[str] = Query(None, description="Search by director name"),
-    genre: Optional[str] = Query(None, min_length=2, description="Filter by genre name"),
+    genre: Optional[str] = Query(
+        None, min_length=2, description="Filter by genre name"
+    ),
     sort_by: SortBy = Query(
         SortBy.IMDB, description="Sort by attribute: price, year, imdb, votes"
     ),
@@ -45,22 +71,40 @@ async def get_movie_list(
     ),
     year_min: Optional[int] = Query(None, ge=1895, description="Minimum release year"),
     year_max: Optional[int] = Query(None, le=2025, description="Maximum release year"),
-    imdb_min: Optional[float] = Query(None, ge=0.0, le=10.0, description="Minimum IMDb rating"),
-    imdb_max: Optional[float] = Query(None, ge=0.0, le=10.0, description="Maximum IMDb rating"),
+    imdb_min: Optional[float] = Query(
+        None, ge=0.0, le=10.0, description="Minimum IMDb rating"
+    ),
+    imdb_max: Optional[float] = Query(
+        None, ge=0.0, le=10.0, description="Maximum IMDb rating"
+    ),
     price_min: Optional[float] = Query(None, ge=0.0, description="Minimum price"),
     price_max: Optional[float] = Query(None, ge=0.0, description="Maximum price"),
     db: AsyncSession = Depends(get_db),
 ):
-    
+
     # Validate filter inputs
     if year_min is not None and year_max is not None and year_min > year_max:
-        raise HTTPException(status_code=400, detail="year_min must be less than or equal to year_max")
+        raise HTTPException(
+            status_code=400, detail="year_min must be less than or equal to year_max"
+        )
     if imdb_min is not None and imdb_max is not None and imdb_min > imdb_max:
-        raise HTTPException(status_code=400, detail="imdb_min must be less than or equal to imdb_max")
+        raise HTTPException(
+            status_code=400, detail="imdb_min must be less than or equal to imdb_max"
+        )
     if price_min is not None and price_max is not None and price_min > price_max:
-        raise HTTPException(status_code=400, detail="price_min must be less than or equal to price_max")
+        raise HTTPException(
+            status_code=400, detail="price_min must be less than or equal to price_max"
+        )
 
-    stmt = select(MovieModel).distinct()
+    # stmt = select(MovieModel).distinct()
+    stmt = (
+        select(
+        MovieModel,
+        func.coalesce(fav_count_subq, 0).label("favorite_count"),
+        func.coalesce(like_count_subq, 0).label("like_count"),
+    )
+        .distinct()
+    )
 
     search_conditions = []
     if title:
@@ -79,7 +123,7 @@ async def get_movie_list(
             DirectorModel, DirectorModel.id == MovieDirectorModel.c.director_id
         )
         search_conditions.append(DirectorModel.name.ilike(f"%{director}%"))
-        
+
     filter_conditions = []
     if genre:
         stmt = stmt.join(MovieGenreModel, MovieGenreModel.c.movie_id == MovieModel.id)
@@ -120,7 +164,7 @@ async def get_movie_list(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Page {page} not found. Total pages available: {total_pages}.",
         )
-        
+
     # SORTING
     sort_column = {
         SortBy.PRICE: MovieModel.price,
@@ -131,7 +175,9 @@ async def get_movie_list(
     }[sort_by]
     sort_func = asc if sort_order == SortOrder.ASC else desc
 
-    paginated_stmt = stmt.order_by(sort_func(sort_column)).offset(offset).limit(per_page)
+    paginated_stmt = (
+        stmt.order_by(sort_func(sort_column)).offset(offset).limit(per_page)
+    )
 
     print(
         "DEBUG PAGINATED:",
@@ -154,7 +200,7 @@ async def get_movie_list(
             prev_page += f"&actor={actor}"
         if director:
             prev_page += f"&director={director}"
-            
+
         if year_min is not None:
             prev_page += f"&year_min={year_min}"
         if year_max is not None:
@@ -163,7 +209,7 @@ async def get_movie_list(
             prev_page += f"&imdb_min={imdb_min}"
         if imdb_max is not None:
             prev_page += f"&imdb_max={imdb_max}"
-            
+
     if page < total_pages:
         next_page = f"{base_url}?page={page+1}&per_page={per_page}&sort_by={sort_by}&sort_order={sort_order}"
 
@@ -175,7 +221,7 @@ async def get_movie_list(
             next_page += f"&actor={actor}"
         if director:
             next_page += f"&director={director}"
-            
+
         if year_min is not None:
             next_page += f"&year_min={year_min}"
         if year_max is not None:
@@ -192,42 +238,53 @@ async def get_movie_list(
         total_pages=total_pages,
         total_items=total_items,
     )
-    
-    
+
 
 @router.get(
     "/{movie_id}/",
     response_model=MovieDetailSchema,
     summary="Get movie details by ID",
-    
 )
 async def get_movie_by_id(
-        movie_id: int,
-        db: AsyncSession = Depends(get_db),
+    movie_id: int,
+    db: AsyncSession = Depends(get_db),
 ) -> MovieDetailSchema:
     """
     Retrieve detailed information about a specific movie by its ID.
     """
     stmt = (
-        select(MovieModel)
+        select(
+            MovieModel,
+            func.coalesce(fav_count_subq, 0).label("favorite_count"),
+            func.coalesce(like_count_subq, 0).label("like_count"),
+            # fav_count_subq.label("favorites_count"),
+            # like_count_subq.label("likes_count"),
+        )
         .options(
             joinedload(MovieModel.certification),
             joinedload(MovieModel.genres),
             joinedload(MovieModel.stars),
             joinedload(MovieModel.directors),
+            joinedload(MovieModel.favorited_by_users),
+            joinedload(MovieModel.liked_by_users),
         )
         .where(MovieModel.id == movie_id)
     )
 
     result = await db.execute(stmt)
-    movie = result.scalars().first()
+    movie = result.first()
 
     if not movie:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Movie with the given ID was not found."
+            detail="Movie with the given ID was not found.",
         )
+        
+    movie_obj, favorite_count, like_count = movie
+    movie_dict = {
+        **movie_obj.__dict__,
+        "favorite_count": favorite_count,
+        "like_count": like_count,
+    }
 
-    return MovieDetailSchema.model_validate(movie)
-
-
+    return MovieDetailSchema.model_validate(movie_dict)

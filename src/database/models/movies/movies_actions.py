@@ -60,7 +60,7 @@ class MovieCommentModel(Base):
     )
 
     liked_by_users: Mapped[list["UserModel"]] = relationship(
-        "UserModel", secondary="CommentLikeModel", lazy="raise"
+        "UserModel", secondary="comment_likes", 
     )
 
 

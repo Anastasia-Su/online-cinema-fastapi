@@ -34,9 +34,9 @@ async def toggle_movie_reaction(
     """
     # Step 1: Check current reaction (if any)
     current = await db.scalar(
-        select(MovieLikeModel.like).where(
-            MovieLikeModel.user_id == user_id,
-            MovieLikeModel.movie_id == movie_id
+        select(MovieLikeModel.c.like).where(
+            MovieLikeModel.c.user_id == user_id,
+            MovieLikeModel.c.movie_id == movie_id
         )
     )
 
@@ -54,20 +54,20 @@ async def toggle_movie_reaction(
         stmt = (
             update(MovieLikeModel)
             .where(
-                MovieLikeModel.user_id == user_id,
-                MovieLikeModel.movie_id == movie_id
+                MovieLikeModel.c.user_id == user_id,
+                MovieLikeModel.c.movie_id == movie_id
             )
             .values(like=is_like)
         )
         await db.execute(stmt)
 
-    else:
-        # Same reaction already exists → remove it (optional!)
-        # Comment this block if you want "pressing like again" to keep the like
-        stmt = delete(MovieLikeModel).where(
-            MovieLikeModel.user_id == user_id,
-            MovieLikeModel.movie_id == movie_id
-        )
-        await db.execute(stmt)
+    # else:
+    #     # Same reaction already exists → remove it (optional!)
+    #     # Comment this block if you want "pressing like again" to keep the like
+    #     stmt = delete(MovieLikeModel).where(
+    #         MovieLikeModel.c.user_id == user_id,
+    #         MovieLikeModel.c.movie_id == movie_id
+    #     )
+    #     await db.execute(stmt)
 
     await db.commit()

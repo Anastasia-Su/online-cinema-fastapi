@@ -15,11 +15,17 @@ from sqlalchemy import (
     Column,
     Index,
     func,
+    select,
+    and_,
+    column,
 )
-from sqlalchemy.orm import mapped_column, Mapped, relationship
+from sqlalchemy.orm import mapped_column, Mapped, relationship, column_property
 from sqlalchemy.ext.hybrid import hybrid_property
-
+from sqlalchemy.sql import text
 from src.database import Base
+
+# UserFavoriteMovieModel, MovieLikeModel
+
 
 # from src.database.models.accounts import UserModel
 
@@ -186,23 +192,13 @@ class MovieModel(Base):
         "UserModel",
         secondary="user_favorite_movies",
         back_populates="favorite_movies",
-        lazy="raise",
     )
 
     liked_by_users: Mapped[list["UserModel"]] = relationship(
         "UserModel",
-        secondary="MovieLikeModel",
+        secondary="movie_likes",
         back_populates="liked_movies",
-        lazy="raise",
     )
-
-    @hybrid_property
-    def favorites_count(self) -> int:
-        return len(self.favorited_by_users) if self.favorited_by_users else 0
-    
-    @hybrid_property
-    def likes_count(self) -> int:
-        return len(self.liked_by_users) if self.liked_by_users else 0
 
     __table_args__ = (
         UniqueConstraint("name", "year", "time", name="unique_movie_constraint"),

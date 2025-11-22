@@ -100,16 +100,18 @@ class UserModel(Base):
 
     favorite_movies: Mapped[list["MovieModel"]] = relationship(
         "MovieModel",
-        secondary="UserFavoriteMovieModel",
+        secondary="user_favorite_movies",
         back_populates="favorited_by_users",
-        lazy="raise",
+        # lazy="raise"
+        
     )
 
     liked_movies: Mapped[list["MovieModel"]] = relationship(
         "MovieModel",
-        secondary="MovieLikeModel",
+        secondary="movie_likes",
         back_populates="liked_by_users",
-        lazy="raise",
+        # lazy="raise"
+        
     )
 
     def __repr__(self):
