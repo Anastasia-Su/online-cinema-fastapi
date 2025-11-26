@@ -11,6 +11,7 @@ from src.database import (
     StarModel,
     DirectorModel,
     MovieModel,
+    MovieCommentModel,
     MovieDirectorModel,
     MovieStarModel,
     MovieGenreModel,
@@ -29,6 +30,12 @@ fav_count_subq = (
     select(func.count(UserFavoriteMovieModel.c.user_id))
         .where(UserFavoriteMovieModel.c.movie_id == MovieModel.id)
         .scalar_subquery()
+)
+
+comment_count_subq = (
+    select(func.count(MovieCommentModel.id))
+    .where(MovieCommentModel.movie_id == MovieModel.id)
+    .scalar_subquery()
 )
 
 like_count_subq = (
@@ -100,8 +107,10 @@ async def get_movie_list(
     stmt = (
         select(
         MovieModel,
-        func.coalesce(fav_count_subq, 0).label("favorite_count"),
-        func.coalesce(like_count_subq, 0).label("like_count"),
+        # func.coalesce(fav_count_subq, 0).label("favorite_count"),
+        # func.coalesce(like_count_subq, 0).label("like_count"),
+        # func.coalesce(comment_count_subq, 0).label("comment_count"),
+        
     )
         .distinct()
     )
@@ -257,8 +266,7 @@ async def get_movie_by_id(
             MovieModel,
             func.coalesce(fav_count_subq, 0).label("favorite_count"),
             func.coalesce(like_count_subq, 0).label("like_count"),
-            # fav_count_subq.label("favorites_count"),
-            # like_count_subq.label("likes_count"),
+            func.coalesce(comment_count_subq, 0).label("comment_count"),
         )
         .options(
             joinedload(MovieModel.certification),
@@ -280,11 +288,12 @@ async def get_movie_by_id(
             detail="Movie with the given ID was not found.",
         )
         
-    movie_obj, favorite_count, like_count = movie
+    movie_obj, favorite_count, like_count, comment_count = movie
     movie_dict = {
         **movie_obj.__dict__,
         "favorite_count": favorite_count,
         "like_count": like_count,
+        "comment_count": comment_count,
     }
 
     return MovieDetailSchema.model_validate(movie_dict)

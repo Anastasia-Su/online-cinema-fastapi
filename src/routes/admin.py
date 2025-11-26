@@ -55,17 +55,7 @@ async def list_users(
     
     return result.scalars().all()
     
-    # return [
-    #     UserListSchema(
-    #         id=user.id,
-    #         email=user.email,
-    #         is_active=user.is_active,
-    #         group=user.group.name        
-    #     )
-    #     for user in users
-    # ]
     
-    # return [dict(row._mapping) for row in result]
 
 
 @router.get("/users/{user_id}", response_model=UserDetailSchema)

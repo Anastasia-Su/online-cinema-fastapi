@@ -24,11 +24,6 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.sql import text
 from src.database import Base
 
-# UserFavoriteMovieModel, MovieLikeModel
-
-
-# from src.database.models.accounts import UserModel
-
 
 MovieGenreModel = Table(
     "movie_genres",

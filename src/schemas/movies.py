@@ -81,6 +81,7 @@ class MovieDetailSchema(MovieBaseSchema):
     
     favorite_count: int = 0
     like_count: int = 0 
+    comment_count: int = 0
     # user_has_favorited: bool = False
     # user_rating: Optional[int] = None  
     # user_reaction: Optional[bool] = None  
