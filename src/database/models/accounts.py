@@ -120,11 +120,18 @@ class UserModel(Base):
         cascade="all, delete-orphan",  # optional but recommended
     )
 
-    # 2. Comments this user liked
+   
     liked_movie_comments: Mapped[list["MovieCommentModel"]] = relationship(
         "MovieCommentModel",
         secondary="comment_likes",  # ← the Table you already defined!
         back_populates="liked_by_users",
+    )
+    
+    rated_movies: Mapped[list["MovieRatingModel"]] = relationship(
+        "MovieRatingModel",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        lazy="selectin",
     )
 
     def __repr__(self):

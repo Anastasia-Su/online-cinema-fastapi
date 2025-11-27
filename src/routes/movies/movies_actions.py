@@ -23,13 +23,13 @@ from src.database import (
 
 from src.schemas import MovieListResponseSchema, MovieListItemSchema, MovieDetailSchema
 from src.schemas.movies import MovieCreateSchema, MovieUpdateSchema
-from ..utils import SortBy, SortOrder, toggle_movie_reaction
+from ..utils import SortBy, SortOrder, toggle_movie_reaction, increment_counter
 
 
 router = APIRouter(prefix="/movies", tags=["movies"])
 
 
-@router.post("/{movie_id}/like", status_code=204)
+@router.post("/{movie_id}/like", status_code=status.HTTP_204_NO_CONTENT)
 async def like_movie(
     movie_id: int,
     user: UserModel = Depends(get_current_user),
@@ -38,7 +38,7 @@ async def like_movie(
     await toggle_movie_reaction(db, user.id, movie_id, is_like=True)
 
 
-@router.post("/{movie_id}/dislike", status_code=204)
+@router.post("/{movie_id}/dislike", status_code=status.HTTP_204_NO_CONTENT)
 async def dislike_movie(
     movie_id: int,
     user: UserModel = Depends(get_current_user),
@@ -47,12 +47,19 @@ async def dislike_movie(
     await toggle_movie_reaction(db, user.id, movie_id, is_like=False)
 
 
-@router.delete("/{movie_id}/reaction", status_code=204)
+@router.delete("/{movie_id}/reaction", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_reaction(
     movie_id: int,
     user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    previous = await db.scalar(
+        select(MovieLikeModel.c.like).where(
+            MovieLikeModel.c.user_id == user.id,
+            MovieLikeModel.c.movie_id == movie_id
+        )
+    )
+    
     stmt = delete(MovieLikeModel).where(
         MovieLikeModel.c.user_id == user.id,
         MovieLikeModel.c.movie_id == movie_id,
@@ -63,10 +70,13 @@ async def remove_reaction(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Movie does not have your reaction or does not exist",
         )
+        
+    if previous is True:
+        await increment_counter(db, movie_id, "like_count", -1)
     await db.commit()
 
 
-@router.post("/{movie_id}/favorite", status_code=204)
+@router.post("/{movie_id}/favorite", status_code=status.HTTP_204_NO_CONTENT)
 async def add_to_favorites(
     movie_id: int,
     user: UserModel = Depends(get_current_user),
@@ -95,10 +105,11 @@ async def add_to_favorites(
     stmt = insert(UserFavoriteMovieModel).values(user_id=user.id, movie_id=movie_id)
     await db.execute(stmt)
 
+    await increment_counter(db, movie_id, "favorite_count", +1)
     await db.commit()
 
 
-@router.delete("/{movie_id}/favorite", status_code=204)
+@router.delete("/{movie_id}/favorite", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_from_favorites(
     movie_id: int,
     user: UserModel = Depends(get_current_user),
@@ -114,7 +125,7 @@ async def remove_from_favorites(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Movie is not in favorites or does not exist",
         )
-
+    await increment_counter(db, movie_id, "favorite_count", -1)
     await db.commit()
 
 
@@ -153,7 +164,7 @@ async def get_favorites(
 
     total_pages = (total_items + per_page - 1) // per_page
     if page > total_pages:
-        raise HTTPException(status_code=404, detail="Page not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Page not found")
 
     stmt = stmt.offset((page - 1) * per_page).limit(per_page)
 

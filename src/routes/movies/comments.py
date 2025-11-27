@@ -14,6 +14,7 @@ from src.database import (
 )
 from src.schemas.comments import CommentCreateSchema, CommentUpdateSchema, CommentSchema
 from ..admin import require_moderator_or_admin
+from ..utils import increment_counter
 
 # _: UserModel = Depends(require_moderator_or_admin),
 
@@ -68,6 +69,7 @@ async def create_comment(
         .where(MovieCommentModel.id == comment.id)
     )
     comment = result.scalar_one()
+    await increment_counter(db, movie_id, "comment_count", +1)
     await db.commit()
 
     # return await enrich_comment(comment, user.id, db)
@@ -195,6 +197,7 @@ async def delete_comment(
         )
 
     await db.delete(comment)
+    await increment_counter(db, movie_id, "comment_count", -1)
     await db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 

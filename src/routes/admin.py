@@ -17,6 +17,8 @@ from src.schemas import (
     UserActivateSchema,
 )
 
+from .utils import backfill_all_counters 
+
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
@@ -121,3 +123,12 @@ async def activate_user(
     await db.commit()
     status_text = "activated" if data.is_active else "deactivated"
     return {"detail": f"User {user_id} has been {status_text}"}
+
+
+@router.post("/recount-all-counters")
+async def recount_all_counters(
+    _: UserModel = Depends(require_admin),
+    db: AsyncSession = Depends(get_db)  # ← direct injection, perfect
+):
+    await backfill_all_counters(db=db)
+    return {"message": "Recount started"}

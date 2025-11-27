@@ -21,33 +21,33 @@ from src.database import (
 )
 from src.schemas import MovieListResponseSchema, MovieListItemSchema, MovieDetailSchema
 from src.schemas.movies import MovieCreateSchema, MovieUpdateSchema
-from ..utils import SortBy, SortOrder
+from ..utils import SortBy, SortOrder, increment_counter
 
 from sqlalchemy import select, func, literal_column
 from sqlalchemy.orm import contains_eager
 
-fav_count_subq = (
-    select(func.count(UserFavoriteMovieModel.c.user_id))
-        .where(UserFavoriteMovieModel.c.movie_id == MovieModel.id)
-        .scalar_subquery()
-)
+# fav_count_subq = (
+#     select(func.count(UserFavoriteMovieModel.c.user_id))
+#         .where(UserFavoriteMovieModel.c.movie_id == MovieModel.id)
+#         .scalar_subquery()
+# )
 
-comment_count_subq = (
-    select(func.count(MovieCommentModel.id))
-    .where(MovieCommentModel.movie_id == MovieModel.id)
-    .scalar_subquery()
-)
+# comment_count_subq = (
+#     select(func.count(MovieCommentModel.id))
+#     .where(MovieCommentModel.movie_id == MovieModel.id)
+#     .scalar_subquery()
+# )
 
-like_count_subq = (
-    select(func.count(MovieLikeModel.c.user_id))
-        .where(
-        and_(
-            MovieLikeModel.c.movie_id == MovieModel.id,
-            MovieLikeModel.c.like.is_(True)
-        )
-    )
-        .scalar_subquery()
-)
+# like_count_subq = (
+#     select(func.count(MovieLikeModel.c.user_id))
+#         .where(
+#         and_(
+#             MovieLikeModel.c.movie_id == MovieModel.id,
+#             MovieLikeModel.c.like.is_(True)
+#         )
+#     )
+#         .scalar_subquery()
+# )
 
 
 
@@ -92,15 +92,15 @@ async def get_movie_list(
     # Validate filter inputs
     if year_min is not None and year_max is not None and year_min > year_max:
         raise HTTPException(
-            status_code=400, detail="year_min must be less than or equal to year_max"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="year_min must be less than or equal to year_max"
         )
     if imdb_min is not None and imdb_max is not None and imdb_min > imdb_max:
         raise HTTPException(
-            status_code=400, detail="imdb_min must be less than or equal to imdb_max"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="imdb_min must be less than or equal to imdb_max"
         )
     if price_min is not None and price_max is not None and price_min > price_max:
         raise HTTPException(
-            status_code=400, detail="price_min must be less than or equal to price_max"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="price_min must be less than or equal to price_max"
         )
 
     # stmt = select(MovieModel).distinct()
@@ -264,9 +264,9 @@ async def get_movie_by_id(
     stmt = (
         select(
             MovieModel,
-            func.coalesce(fav_count_subq, 0).label("favorite_count"),
-            func.coalesce(like_count_subq, 0).label("like_count"),
-            func.coalesce(comment_count_subq, 0).label("comment_count"),
+            # func.coalesce(fav_count_subq, 0).label("favorite_count"),
+            # func.coalesce(like_count_subq, 0).label("like_count"),
+            # func.coalesce(comment_count_subq, 0).label("comment_count"),
         )
         .options(
             joinedload(MovieModel.certification),
@@ -280,7 +280,7 @@ async def get_movie_by_id(
     )
 
     result = await db.execute(stmt)
-    movie = result.first()
+    movie = result.scalars().first()
 
     if not movie:
         raise HTTPException(
@@ -288,12 +288,13 @@ async def get_movie_by_id(
             detail="Movie with the given ID was not found.",
         )
         
-    movie_obj, favorite_count, like_count, comment_count = movie
-    movie_dict = {
-        **movie_obj.__dict__,
-        "favorite_count": favorite_count,
-        "like_count": like_count,
-        "comment_count": comment_count,
-    }
+    # movie_obj, favorite_count, like_count, comment_count = movie
+    # movie_dict = {
+    #     **movie_obj.__dict__,
+    #     "favorite_count": favorite_count,
+    #     "like_count": like_count,
+    #     "comment_count": comment_count,
+    # }
 
-    return MovieDetailSchema.model_validate(movie_dict)
+    # return MovieDetailSchema.model_validate(movie_dict)
+    return MovieDetailSchema.model_validate(movie)

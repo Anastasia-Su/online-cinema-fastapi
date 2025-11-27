@@ -194,6 +194,20 @@ class MovieModel(Base):
         secondary="movie_likes",
         back_populates="liked_movies",
     )
+    
+    ratings: Mapped[list["MovieRatingModel"]] = relationship(
+        "MovieRatingModel",
+        back_populates="movie",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    rating_average: Mapped[float] = mapped_column(Float, default=0.0)
+    rating_count: Mapped[int] = mapped_column(
+        Integer, default=0, server_default="0", index=True
+    )
+    like_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0", index=True)
+    favorite_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0", index=True)
+    comment_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0", index=True)
 
     __table_args__ = (
         UniqueConstraint("name", "year", "time", name="unique_movie_constraint"),

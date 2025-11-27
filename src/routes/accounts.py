@@ -204,7 +204,7 @@ async def resend_activation(
                 }
             },
         },
-        400: {
+        status.HTTP_400_BAD_REQUEST: {
             "description": "Invalid, expired, or already used token",
             "content": {
                 "application/json": {
@@ -245,12 +245,16 @@ async def activate_account(
             await db.delete(token_record)
             await db.commit()
         raise HTTPException(
-            status_code=400, detail="Invalid or expired activation token."
+            status_code=status.HTTP_status.HTTP_400_BAD_REQUEST_BAD_REQUEST,
+            detail="Invalid or expired activation token.",
         )
 
     user = token_record.user
     if user.is_active:
-        raise HTTPException(status_code=400, detail="User account is already active.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User account is already active.",
+        )
 
     user.is_active = True
     await db.delete(token_record)
@@ -301,7 +305,9 @@ async def logout_user(
 
     except Exception as e:
         # return MessageResponseSchema(message=str(e))
-        return HTTPException(status_code=400, detail="Logout failed")
+        return HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Logout failed"
+        )
 
 
 @router.post("/change-password/", response_model=MessageResponseSchema)
@@ -313,7 +319,8 @@ async def change_password(
 
     if not user.verify_password(data.old_password):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Old password is incorrect."
+            status_code=status.HTTP_status.HTTP_400_BAD_REQUEST_BAD_REQUEST,
+            detail="Old password is incorrect.",
         )
 
     user.password = data.new_password
@@ -385,7 +392,7 @@ async def request_password_reset_token(
     description="Reset a user's password if a valid token is provided.",
     status_code=status.HTTP_200_OK,
     responses={
-        400: {
+        status.HTTP_400_BAD_REQUEST: {
             "description": (
                 "Bad Request - The provided email or token is invalid, "
                 "the token has expired, or the user account is not active."
@@ -442,7 +449,7 @@ async def reset_password(
 
     Raises:
         HTTPException:
-            - 400 Bad Request if the email or token is invalid, or the token has expired.
+            - status.HTTP_400_BAD_REQUEST Bad Request if the email or token is invalid, or the token has expired.
             - 500 Internal Server Error if an error occurs during the password reset process.
     """
     stmt = select(UserModel).filter_by(email=email)
@@ -450,7 +457,8 @@ async def reset_password(
     user = result.scalars().first()
     if not user or not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid email or token."
+            status_code=status.HTTP_status.HTTP_400_BAD_REQUEST_BAD_REQUEST,
+            detail="Invalid email or token.",
         )
 
     stmt = select(PasswordResetTokenModel).filter_by(user_id=user.id)
@@ -462,7 +470,8 @@ async def reset_password(
             await db.run_sync(lambda s: s.delete(token_record))
             await db.commit()
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid email or token."
+            status_code=status.HTTP_status.HTTP_400_BAD_REQUEST_BAD_REQUEST,
+            detail="Invalid email or token.",
         )
 
     # original_default = datetime.now(timezone.utc) + timedelta(minutes=3)
@@ -472,7 +481,8 @@ async def reset_password(
         await db.run_sync(lambda s: s.delete(token_record))
         await db.commit()
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid email or token."
+            status_code=status.HTTP_status.HTTP_400_BAD_REQUEST_BAD_REQUEST,
+            detail="Invalid email or token.",
         )
 
     try:
@@ -607,7 +617,7 @@ async def login_user(
     description="Refresh the access token using a valid refresh token.",
     status_code=status.HTTP_200_OK,
     responses={
-        400: {
+        status.HTTP_400_BAD_REQUEST: {
             "description": "Bad Request - The provided refresh token is invalid or expired.",
             "content": {
                 "application/json": {"example": {"detail": "Token has expired."}}
@@ -646,7 +656,7 @@ async def refresh_access_token(
 
     Raises:
         HTTPException:
-            - 400 Bad Request if the token is invalid or expired.
+            - status.HTTP_400_BAD_REQUEST Bad Request if the token is invalid or expired.
             - 401 Unauthorized if the refresh token is not found.
             - 404 Not Found if the user associated with the token does not exist.
     """
@@ -655,7 +665,7 @@ async def refresh_access_token(
         user_id = decoded_token.get("user_id")
     except BaseSecurityError as error:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_status.HTTP_400_BAD_REQUEST_BAD_REQUEST,
             detail=str(error),
         )
 

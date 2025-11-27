@@ -25,6 +25,7 @@ from src.database.models.movies.movies_actions import (
     UserFavoriteMovieModel,
     MovieLikeModel,
     MovieCommentModel,
+    MovieRatingModel,
     CommentLikeModel,
 )
 from src.database.validators import accounts as accounts_validators

@@ -79,9 +79,10 @@ class MovieDetailSchema(MovieBaseSchema):
     stars: list[StarSchema]
     directors: list[DirectorSchema]
     
-    favorite_count: int = 0
-    like_count: int = 0 
-    comment_count: int = 0
+    favorite_count: int 
+    like_count: int 
+    comment_count: int
+    rating_average: float
     # user_has_favorited: bool = False
     # user_rating: Optional[int] = None  
     # user_reaction: Optional[bool] = None  
