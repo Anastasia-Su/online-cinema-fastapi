@@ -37,7 +37,9 @@ class EmailSenderInterface(ABC):
         pass
 
     @abstractmethod
-    async def send_password_reset_complete_email(self, email: str, login_link: str) -> None:
+    async def send_password_reset_complete_email(
+        self, email: str, login_link: str
+    ) -> None:
         """
         Asynchronously send an email confirming that the password has been reset.
 
@@ -45,4 +47,10 @@ class EmailSenderInterface(ABC):
             email (str): The recipient's email address.
             login_link (str): The login link to include in the email.
         """
+        pass
+
+    @abstractmethod
+    async def send_comment_reply_email(
+        self, email: str, parent_preview: str, current_preview: str, reply_link: str
+    ):
         pass

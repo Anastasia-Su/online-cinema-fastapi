@@ -18,7 +18,7 @@ class BaseAppSettings(BaseSettings):
     ACTIVATION_COMPLETE_EMAIL_TEMPLATE_NAME: str = "activation_complete.html"
     PASSWORD_RESET_TEMPLATE_NAME: str = "password_reset_request.html"
     PASSWORD_RESET_COMPLETE_TEMPLATE_NAME: str = "password_reset_complete.html"
-
+    COMMENT_REPLY_TEMPLATE_NAME: str = "comment_reply.html"
     LOGIN_TIME_DAYS: int = 7
 
     EMAIL_HOST: str = os.getenv("EMAIL_HOST", "host")
@@ -34,6 +34,10 @@ class BaseAppSettings(BaseSettings):
     S3_STORAGE_SECRET_KEY: str = os.getenv("MINIO_ROOT_PASSWORD", "some_password")
     S3_BUCKET_NAME: str = os.getenv("MINIO_STORAGE", "cinema-storage")
 
+    CELERY_BROKER_URL: str = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+    CELERY_RESULT_BACKEND: str = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/1")
+    
+    
     @property
     def S3_STORAGE_ENDPOINT(self) -> str:
         return f"http://{self.S3_STORAGE_HOST}:{self.S3_STORAGE_PORT}"

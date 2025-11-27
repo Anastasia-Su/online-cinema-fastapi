@@ -50,6 +50,7 @@ def get_accounts_email_notificator(
         activation_complete_email_template_name=settings.ACTIVATION_COMPLETE_EMAIL_TEMPLATE_NAME,
         password_email_template_name=settings.PASSWORD_RESET_TEMPLATE_NAME,
         password_complete_email_template_name=settings.PASSWORD_RESET_COMPLETE_TEMPLATE_NAME,
+        comment_reply_template_name=settings.COMMENT_REPLY_TEMPLATE_NAME
     )
 
 
@@ -64,36 +65,3 @@ def get_s3_storage_client(
         bucket_name=settings.S3_BUCKET_NAME,
     )
 
-
-# async def get_current_user(
-#     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
-#     jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
-#     redis=Depends(get_redis),
-#     db: AsyncSession = Depends(get_db),
-# ) -> UserModel:
-#     token = credentials.credentials if credentials else None
-#     if not token:
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token"
-#         )
-
-#     if await is_token_revoked(token, redis):
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED, detail="Token revoked"
-#         )
-
-#     try:
-#         payload = jwt_manager.decode_access_token(token)
-#     except TokenExpiredError:
-#         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired")
-#     except InvalidTokenError:
-#         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-#     except Exception as e:
-#         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token validation failed") from e
-#     print("payload", payload)
-    
-#     user_id = payload.get("user_id")
-    
-#     result = await db.execute(select(UserModel).where(UserModel.id == user_id))
-#     user = result.scalars().first()
-#     return user

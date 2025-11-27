@@ -264,9 +264,7 @@ async def get_movie_by_id(
     stmt = (
         select(
             MovieModel,
-            # func.coalesce(fav_count_subq, 0).label("favorite_count"),
-            # func.coalesce(like_count_subq, 0).label("like_count"),
-            # func.coalesce(comment_count_subq, 0).label("comment_count"),
+            
         )
         .options(
             joinedload(MovieModel.certification),
@@ -288,13 +286,4 @@ async def get_movie_by_id(
             detail="Movie with the given ID was not found.",
         )
         
-    # movie_obj, favorite_count, like_count, comment_count = movie
-    # movie_dict = {
-    #     **movie_obj.__dict__,
-    #     "favorite_count": favorite_count,
-    #     "like_count": like_count,
-    #     "comment_count": comment_count,
-    # }
-
-    # return MovieDetailSchema.model_validate(movie_dict)
-    return MovieDetailSchema.model_validate(movie)
+    return movie

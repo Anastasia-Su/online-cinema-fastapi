@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from sqlalchemy import select, func, and_, delete, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, raiseload, selectinload, defaultload
+from typing import Optional
 
 from src.database import (
     MovieCommentModel,
@@ -15,6 +16,7 @@ from src.database import (
 from src.schemas.comments import CommentCreateSchema, CommentUpdateSchema, CommentSchema
 from ..admin import require_moderator_or_admin
 from ..utils import increment_counter
+from src.tasks.comment_notifications import send_comment_reply_email
 
 # _: UserModel = Depends(require_moderator_or_admin),
 
@@ -39,14 +41,6 @@ async def create_comment(
             status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found"
         )
 
-    # Validate parent comment belongs to same movie
-    if payload.parent_id:
-        parent = await db.get(MovieCommentModel, payload.parent_id)
-        if not parent or parent.movie_id != movie_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid parent comment"
-            )
-
     comment = MovieCommentModel(
         movie_id=movie_id,
         user_id=user.id,
@@ -56,6 +50,33 @@ async def create_comment(
     db.add(comment)
     await db.flush()
     await db.refresh(comment)
+    
+    # Validate parent comment belongs to same movie
+    if payload.parent_id:
+        parent = await db.get(MovieCommentModel, payload.parent_id)
+        
+        
+        
+        if not parent or parent.movie_id != movie_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid parent comment"
+            )
+        
+            
+        await send_comment_reply_email(
+            email=parent.user.email,
+                # recipient_email=parent.user.email,
+                # recipient_username=parent.user.email,
+                # actor_username=user.email,
+                # movie_title=movie.name,
+            parent_preview=parent.content,
+            current_preview=comment.content,
+            reply_link =  f"http://127.0.0.1:8000/movies/{movie_id}/{comment.id}",
+            )
+            
+            
+            
+
 
     # Load user and likes
     result = await db.execute(
@@ -76,12 +97,12 @@ async def create_comment(
     return enrich_comment_sync(comment, user.id)
 
 
-@router.get("/{movie_id}/comments", response_model=list[CommentSchema])
+@router.get("/{movie_id}/comments", response_model=list[CommentSchema], operation_id="get_movie_comments")
 async def get_comments(
     movie_id: int,
     page: int = Query(1, ge=1),
     per_page: int = Query(10, ge=1, le=50),
-    user: UserModel = Depends(get_current_user, use_cache=False),
+    user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     movie = await db.get(MovieModel, movie_id)
@@ -173,6 +194,44 @@ async def update_comment(
     return enrich_comment_sync(comment, user.id)
 
 
+@router.get(
+    "/{movie_id}/{comment_id}",
+    response_model=CommentSchema,
+    summary="Get comment details by ID",
+)
+async def get_comment_by_id(
+    comment_id: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Retrieve detailed information about a specific comment by its ID.
+    """
+    stmt = (
+        select(
+            MovieCommentModel,
+            
+        )
+        .options(
+            selectinload(MovieCommentModel.liked_by_users),
+            selectinload(
+                MovieCommentModel.replies.and_(MovieCommentModel.liked_by_users)
+            ),
+        )
+        .where(MovieCommentModel.id == comment_id)
+    )
+
+    result = await db.execute(stmt)
+    comment = result.scalars().first()
+
+    if not comment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Comment with the given ID was not found.",
+        )
+        
+    return enrich_comment_sync(comment, comment.user_id)
+
+
 @router.delete(
     "/{movie_id}/comments/{comment_id}", status_code=status.HTTP_204_NO_CONTENT
 )
@@ -257,7 +316,6 @@ def enrich_comment_sync(
 ) -> CommentSchema:
     """
     Converts a fully-loaded MovieCommentModel → CommentSchema
-    NO DB access → NO MissingGreenlet → perfect for tree building
     """
     return CommentSchema(
         id=comment.id,
