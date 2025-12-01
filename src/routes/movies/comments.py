@@ -16,7 +16,10 @@ from src.database import (
 from src.schemas.comments import CommentCreateSchema, CommentUpdateSchema, CommentSchema
 from ..admin import require_moderator_or_admin
 from ..utils import increment_counter
-from src.tasks.comment_notifications import send_comment_reply_email
+from src.tasks.comment_notifications import (
+    send_comment_reply_email,
+    send_comment_like_email,
+)
 
 # _: UserModel = Depends(require_moderator_or_admin),
 
@@ -50,33 +53,22 @@ async def create_comment(
     db.add(comment)
     await db.flush()
     await db.refresh(comment)
-    
+
     # Validate parent comment belongs to same movie
     if payload.parent_id:
         parent = await db.get(MovieCommentModel, payload.parent_id)
-        
-        
-        
+
         if not parent or parent.movie_id != movie_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid parent comment"
             )
-        
-            
-        await send_comment_reply_email(
-            email=parent.user.email,
-                # recipient_email=parent.user.email,
-                # recipient_username=parent.user.email,
-                # actor_username=user.email,
-                # movie_title=movie.name,
-            parent_preview=parent.content,
-            current_preview=comment.content,
-            reply_link =  f"http://127.0.0.1:8000/movies/{movie_id}/{comment.id}",
-            )
-            
-            
-            
 
+        send_comment_reply_email.delay(
+            email=str(parent.user.email),
+            parent_preview=str(parent.content),
+            current_preview=str(comment.content),
+            reply_link=f"http://127.0.0.1:8000/movies/{movie_id}/{comment.id}",
+        )
 
     # Load user and likes
     result = await db.execute(
@@ -97,7 +89,11 @@ async def create_comment(
     return enrich_comment_sync(comment, user.id)
 
 
-@router.get("/{movie_id}/comments", response_model=list[CommentSchema], operation_id="get_movie_comments")
+@router.get(
+    "/{movie_id}/comments",
+    response_model=list[CommentSchema],
+    operation_id="get_movie_comments",
+)
 async def get_comments(
     movie_id: int,
     page: int = Query(1, ge=1),
@@ -124,9 +120,12 @@ async def get_comments(
         .options(
             selectinload(MovieCommentModel.user),
             selectinload(MovieCommentModel.liked_by_users),
-
-            selectinload(MovieCommentModel.replies).selectinload(MovieCommentModel.user),
-            selectinload(MovieCommentModel.replies).selectinload(MovieCommentModel.liked_by_users),
+            selectinload(MovieCommentModel.replies).selectinload(
+                MovieCommentModel.user
+            ),
+            selectinload(MovieCommentModel.replies).selectinload(
+                MovieCommentModel.liked_by_users
+            ),
         )
     )
 
@@ -148,8 +147,9 @@ async def get_comments(
     # Reuse the same function!
     return [
         enrich_comment_sync(c, user.id)
-        for c in top_level_comments[offset:offset + per_page]
+        for c in top_level_comments[offset : offset + per_page]
     ]
+
 
 @router.patch("/{movie_id}/comments/{comment_id}", response_model=CommentSchema)
 async def update_comment(
@@ -209,7 +209,6 @@ async def get_comment_by_id(
     stmt = (
         select(
             MovieCommentModel,
-            
         )
         .options(
             selectinload(MovieCommentModel.liked_by_users),
@@ -228,7 +227,7 @@ async def get_comment_by_id(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Comment with the given ID was not found.",
         )
-        
+
     return enrich_comment_sync(comment, comment.user_id)
 
 
@@ -277,13 +276,18 @@ async def like_comment(
         )
 
     stmt = (
-        insert(CommentLikeModel)
-        .values(user_id=user.id, comment_id=comment_id)
+        insert(CommentLikeModel).values(user_id=user.id, comment_id=comment_id)
         # .on_conflict_do_nothing()
     )
 
     await db.execute(stmt)
     await db.commit()
+
+    send_comment_like_email.delay(
+        email=str(comment.user.email),
+        parent_preview=str(comment.content),
+        comment_link=f"http://127.0.0.1:8000/movies/{movie_id}/comments/{comment_id}",
+    )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -325,7 +329,7 @@ def enrich_comment_sync(
         movie_id=comment.movie_id,
         user_id=comment.user_id,
         parent_id=comment.parent_id,
-        username=comment.user.email,               
+        username=comment.user.email,
         like_count=len(comment.liked_by_users),
         user_has_liked=current_user_id in {u.id for u in comment.liked_by_users},
         replies=[

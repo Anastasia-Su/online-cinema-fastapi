@@ -1,28 +1,9 @@
-# from celery import Celery
-
-# celery = Celery(
-#     "worker",
-#     broker="redis://localhost:6379/0",
-#     backend="redis://localhost:6379/1",
-#     # include=["src.tasks.comment_notifications"]
-# )  
-# celery.conf.beat_schedule = {
-#     "cleanup-expired-tokens-every-5-min": {
-#         "task": "cleanup_expired_tokens",
-#         "schedule": 600.0,
-#     },
-# }
-# celery.conf.timezone = "UTC"
-
-# src/celery_app.py
 from __future__ import annotations
 
 import os
 from celery import Celery
 from src.config.get_settings import get_settings
-# import src.tasks.comment_notifications
 
-# This ensures settings are loaded before Celery starts
 settings = get_settings()
 
 def make_celery() -> Celery:
@@ -31,10 +12,14 @@ def make_celery() -> Celery:
     This is the pattern used by FastAPI docs, Celery docs, and all senior teams.
     """
     celery_app = Celery(
-        "movie_app",  # name doesn't matter much
+        "movie_app",
         broker=settings.CELERY_BROKER_URL,
         backend=settings.CELERY_RESULT_BACKEND,
-        # Don't use include= here — better to import tasks explicitly or use autodiscover
+        include=[
+            "src.tasks.comment_notifications",   # ← forces import at startup
+            "src.tasks.cleanup",
+            # add every task module here
+        ],
     )
 
     celery_app.conf.update(
@@ -59,14 +44,11 @@ def make_celery() -> Celery:
         },
     )
 
-    # Optional: autodiscover tasks in src/tasks/
-    # celery_app.autodiscover_tasks(["src.tasks"])
-
     return celery_app
 
 
-# Create the app instance
 celery_app = make_celery()
 
 # Export for worker/beats
 __all__ = ("celery_app",)
+# __import__("src.tasks.comment_notifications")

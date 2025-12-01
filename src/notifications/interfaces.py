@@ -54,3 +54,9 @@ class EmailSenderInterface(ABC):
         self, email: str, parent_preview: str, current_preview: str, reply_link: str
     ):
         pass
+    
+    @abstractmethod
+    async def send_comment_like_email(
+        self, email: str, parent_preview: str, comment_link: str
+    ):
+        pass

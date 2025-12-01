@@ -55,11 +55,10 @@ async def remove_reaction(
 ):
     previous = await db.scalar(
         select(MovieLikeModel.c.like).where(
-            MovieLikeModel.c.user_id == user.id,
-            MovieLikeModel.c.movie_id == movie_id
+            MovieLikeModel.c.user_id == user.id, MovieLikeModel.c.movie_id == movie_id
         )
     )
-    
+
     stmt = delete(MovieLikeModel).where(
         MovieLikeModel.c.user_id == user.id,
         MovieLikeModel.c.movie_id == movie_id,
@@ -70,7 +69,7 @@ async def remove_reaction(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Movie does not have your reaction or does not exist",
         )
-        
+
     if previous is True:
         await increment_counter(db, movie_id, "like_count", -1)
     await db.commit()
@@ -164,7 +163,9 @@ async def get_favorites(
 
     total_pages = (total_items + per_page - 1) // per_page
     if page > total_pages:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Page not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Page not found"
+        )
 
     stmt = stmt.offset((page - 1) * per_page).limit(per_page)
 
