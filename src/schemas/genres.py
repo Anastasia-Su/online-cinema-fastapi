@@ -8,15 +8,15 @@ class GenreCountSchema(BaseModel):
     name: str
     movie_count: Optional[int] = None  # Included for genre listing with counts
 
-    model_config: ConfigDict = ConfigDict(from_attributes=True) 
-    
-    
+    model_config: ConfigDict = ConfigDict(from_attributes=True)
+
+
 class GenreListResponseSchema(BaseModel):
     genres: list[GenreCountSchema]
 
     model_config: ConfigDict = ConfigDict(from_attributes=True)
-    
+
+
 # class GenreDetailSchema(GenreSchema):
-#     movie_count: Optional[int] = None 
+#     movie_count: Optional[int] = None
 #     movies: list[MovieListItemSchema]
-    

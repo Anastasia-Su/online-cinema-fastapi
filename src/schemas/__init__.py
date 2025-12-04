@@ -4,7 +4,6 @@ from src.schemas.movies import (
     MovieListItemSchema,
     MovieCreateSchema,
     MovieUpdateSchema,
-    
 )
 
 from src.schemas.genres import GenreListResponseSchema, GenreCountSchema
@@ -20,7 +19,7 @@ from src.schemas.accounts import (
     UserLoginResponseSchema,
     UserLoginRequestSchema,
     TokenRefreshRequestSchema,
-    TokenRefreshResponseSchema
+    TokenRefreshResponseSchema,
 )
 
 from src.schemas.admin import (

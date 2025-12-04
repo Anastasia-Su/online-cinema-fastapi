@@ -12,8 +12,7 @@ from src.database import (
     DirectorModel,
     CertificationModel,
     UserGroupModel,
-    UserGroupEnum
-    
+    UserGroupEnum,
 )
 
 
@@ -25,7 +24,9 @@ NUM_MOVIES = 10_000  # number of movies to add
 async def seed_movies():
     async with AsyncSessionLocal() as session:
         # ✅ Keep existing data — just reuse it
-        certifications = (await session.execute(select(CertificationModel))).scalars().all()
+        certifications = (
+            (await session.execute(select(CertificationModel))).scalars().all()
+        )
         genres = (await session.execute(select(GenreModel))).scalars().all()
         stars = (await session.execute(select(StarModel))).scalars().all()
         directors = (await session.execute(select(DirectorModel))).scalars().all()
@@ -43,8 +44,16 @@ async def seed_movies():
             genres = [
                 GenreModel(name=name)
                 for name in [
-                    "Action", "Adventure", "Comedy", "Drama", "Horror",
-                    "Romance", "Sci-Fi", "Thriller", "Fantasy", "Animation"
+                    "Action",
+                    "Adventure",
+                    "Comedy",
+                    "Drama",
+                    "Horror",
+                    "Romance",
+                    "Sci-Fi",
+                    "Thriller",
+                    "Fantasy",
+                    "Animation",
                 ]
             ]
             session.add_all(genres)
@@ -89,8 +98,8 @@ async def seed_movies():
         session.add_all(movies)
         await session.commit()
         print(f"✅ Added {len(movies)} new movies successfully!")
-        
-        
+
+
 async def seed_user_groups() -> None:
     """
     Seed the UserGroupModel table with default user groups if none exist.
@@ -116,4 +125,3 @@ async def seed_user_groups() -> None:
 if __name__ == "__main__":
     # asyncio.run(seed_movies())
     asyncio.run(seed_user_groups())
-

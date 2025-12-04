@@ -9,7 +9,7 @@ from src.database.models.accounts import (
     PasswordResetTokenModel,
     RefreshTokenModel,
     UserProfileModel,
-    GenderEnum
+    GenderEnum,
 )
 from src.database.models.movies.movies_base import (
     MovieModel,
@@ -19,7 +19,7 @@ from src.database.models.movies.movies_base import (
     CertificationModel,
     MovieDirectorModel,
     MovieStarModel,
-    MovieGenreModel
+    MovieGenreModel,
 )
 from src.database.models.movies.movies_actions import (
     UserFavoriteMovieModel,

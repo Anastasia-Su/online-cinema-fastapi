@@ -13,6 +13,7 @@ from src.routes import (
     accounts_router,
     profiles_router,
     admin_router,
+    moderator_router,
     comments_router,
     ratings_router,
 )
@@ -45,3 +46,4 @@ app.include_router(comments_router)
 app.include_router(ratings_router)
 app.include_router(genre_router)
 app.include_router(admin_router)
+app.include_router(moderator_router)

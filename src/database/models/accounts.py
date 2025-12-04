@@ -103,7 +103,6 @@ class UserModel(Base):
         secondary="user_favorite_movies",
         back_populates="favorited_by_users",
         # lazy="raise"
-        
     )
 
     liked_movies: Mapped[list["MovieModel"]] = relationship(
@@ -111,22 +110,20 @@ class UserModel(Base):
         secondary="movie_likes",
         back_populates="liked_by_users",
         # lazy="raise"
-        
     )
-    
+
     movie_comments: Mapped[list["MovieCommentModel"]] = relationship(
         "MovieCommentModel",
         back_populates="user",
         cascade="all, delete-orphan",  # optional but recommended
     )
 
-   
     liked_movie_comments: Mapped[list["MovieCommentModel"]] = relationship(
         "MovieCommentModel",
         secondary="comment_likes",  # ← the Table you already defined!
         back_populates="liked_by_users",
     )
-    
+
     rated_movies: Mapped[list["MovieRatingModel"]] = relationship(
         "MovieRatingModel",
         back_populates="user",

@@ -14,7 +14,7 @@ from src.database import (
     get_current_user,
 )
 from src.schemas.comments import CommentCreateSchema, CommentUpdateSchema, CommentSchema
-from ..admin import require_moderator_or_admin
+
 from ..utils import increment_counter
 from src.tasks.comment_notifications import (
     send_comment_reply_email,

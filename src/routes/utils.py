@@ -1,4 +1,5 @@
 from enum import Enum
+from fastapi import HTTPException
 
 from sqlalchemy import delete, insert, update, select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -169,7 +170,7 @@ async def update_movie_rating_stats(
     old_rating = previous value (None if insert)
     new_rating = new value (None if delete)
     """
-    
+
     movie = await db.get(MovieModel, movie_id)
     if not movie:
         return
@@ -198,3 +199,41 @@ async def update_movie_rating_stats(
     movie.rating_average = round(new_avg, 2)
     movie.rating_count = new_count
     # await db.commit()
+
+
+async def resolve_relations(db, model_cls, names: list[str]):
+    """
+    Resolve a list of names to ORM objects.
+    - Case-insensitive matching (Postgres-friendly)
+    - Trims whitespace
+    - Raises HTTPException listing exactly which names were not found
+    - Returns ORM objects in the same order as the input list
+    """
+    if not names:
+        return []
+
+    # Trim and casefold inputs
+    names_cleaned = [n.strip() for n in names]
+    names_lowered = [n.casefold() for n in names_cleaned]
+
+    # Query DB
+    q = select(model_cls).where(func.lower(model_cls.name).in_(names_lowered))
+    res = await db.execute(q)
+    objs = res.scalars().all()
+
+    # Map found names
+    found_lowered = {o.name.casefold(): o for o in objs}
+
+    # Detect missing
+    missing = [
+        orig
+        for orig, low in zip(names_cleaned, names_lowered)
+        if low not in found_lowered
+    ]
+    if missing:
+        raise HTTPException(
+            400, detail=f"Unknown {model_cls.__name__} names: {', '.join(missing)}"
+        )
+
+    # Return objects in same order as input
+    return [found_lowered[low] for low in names_lowered]

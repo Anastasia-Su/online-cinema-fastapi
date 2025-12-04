@@ -50,8 +50,6 @@ from sqlalchemy.orm import contains_eager
 # )
 
 
-
-
 router = APIRouter(prefix="/movies", tags=["movies"])
 
 
@@ -92,28 +90,27 @@ async def get_movie_list(
     # Validate filter inputs
     if year_min is not None and year_max is not None and year_min > year_max:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="year_min must be less than or equal to year_max"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="year_min must be less than or equal to year_max",
         )
     if imdb_min is not None and imdb_max is not None and imdb_min > imdb_max:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="imdb_min must be less than or equal to imdb_max"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="imdb_min must be less than or equal to imdb_max",
         )
     if price_min is not None and price_max is not None and price_min > price_max:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="price_min must be less than or equal to price_max"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="price_min must be less than or equal to price_max",
         )
 
     # stmt = select(MovieModel).distinct()
-    stmt = (
-        select(
+    stmt = select(
         MovieModel,
         # func.coalesce(fav_count_subq, 0).label("favorite_count"),
         # func.coalesce(like_count_subq, 0).label("like_count"),
         # func.coalesce(comment_count_subq, 0).label("comment_count"),
-        
-    )
-        .distinct()
-    )
+    ).distinct()
 
     search_conditions = []
     if title:
@@ -264,7 +261,6 @@ async def get_movie_by_id(
     stmt = (
         select(
             MovieModel,
-            
         )
         .options(
             joinedload(MovieModel.certification),
@@ -285,5 +281,5 @@ async def get_movie_by_id(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Movie with the given ID was not found.",
         )
-        
+
     return movie

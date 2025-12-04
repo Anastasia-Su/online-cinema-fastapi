@@ -7,20 +7,21 @@ from fastapi import HTTPException, status
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
-def get_current_user_token(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+
+def get_current_user_token(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+):
     if not credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authorization header is missing"
+            detail="Authorization header is missing",
         )
     if credentials.scheme.lower() != "bearer":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication scheme"
+            detail="Invalid authentication scheme",
         )
     return credentials.credentials
-
-
 
 
 # def get_token(request: Request) -> str:
@@ -31,8 +32,8 @@ def get_current_user_token(credentials: HTTPAuthorizationCredentials = Depends(b
 #     :return: Extracted token string.
 #     :raises HTTPException: If Authorization header is missing or invalid.
 #     """
-    
-    
+
+
 #     authorization: str = request.headers.get("Authorization")
 
 #     if not authorization:

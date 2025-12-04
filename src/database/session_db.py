@@ -109,8 +109,3 @@ async def get_current_user(
     )
     user = result.scalars().first()
     return user
-
-
-
-
-

@@ -2,7 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy import select, update, insert, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.schemas.ratings import RatingCreateSchema, RatingSchema
-from src.database import MovieRatingModel, MovieModel, get_db, get_current_user, UserModel
+from src.database import (
+    MovieRatingModel,
+    MovieModel,
+    get_db,
+    get_current_user,
+    UserModel,
+)
 from ..utils import update_movie_rating_stats
 
 
@@ -20,11 +26,12 @@ async def rate_movie(
     current_user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-   
+
     movie = await db.get(MovieModel, movie_id)
     if not movie:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found")
-
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found"
+        )
 
     select_result = await db.execute(
         select(MovieRatingModel.rating).where(
@@ -33,7 +40,7 @@ async def rate_movie(
         )
     )
     current_rating = select_result.scalar_one_or_none()
-    
+
     update_stmt = (
         update(MovieRatingModel)
         .where(
@@ -41,7 +48,6 @@ async def rate_movie(
             MovieRatingModel.movie_id == movie_id,
         )
         .values(rating=payload.rating, updated_at=func.now())
-      
     )
 
     result = await db.execute(update_stmt)
@@ -60,11 +66,11 @@ async def rate_movie(
         result = await db.execute(insert_stmt)
         await db.flush()
         rating_obj = result.scalar_one()
-        
+
     await update_movie_rating_stats(
         db=db, movie_id=movie_id, old_rating=current_rating, new_rating=payload.rating
     )
-    
+
     await db.commit()
 
     return RatingSchema(
@@ -92,7 +98,10 @@ async def get_my_rating(
     rating = result.scalar_one_or_none()
 
     if not rating:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="You haven't rated this movie yet")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="You haven't rated this movie yet",
+        )
 
     return RatingSchema(
         user_id=rating.user_id,
@@ -110,7 +119,7 @@ async def delete_rating(
     current_user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    
+
     current_rating_result = await db.execute(
         select(MovieRatingModel.rating).where(
             MovieRatingModel.user_id == current_user.id,
@@ -120,22 +129,25 @@ async def delete_rating(
     current_rating = current_rating_result.scalar_one_or_none()
 
     if current_rating is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="You haven't rated this movie")
-    
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="You haven't rated this movie"
+        )
+
     result = await db.execute(
         delete(MovieRatingModel).where(
             MovieRatingModel.user_id == current_user.id,
             MovieRatingModel.movie_id == movie_id,
         )
     )
-    
 
     if result.scalar_one_or_none() is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rating not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Rating not found"
+        )
 
     await update_movie_rating_stats(
-            db=db, movie_id=movie_id, old_rating=current_rating, new_rating=None
-        )
-    
+        db=db, movie_id=movie_id, old_rating=current_rating, new_rating=None
+    )
+
     await db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

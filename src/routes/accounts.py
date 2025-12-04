@@ -665,7 +665,7 @@ async def refresh_access_token(
         user_id = decoded_token.get("user_id")
     except BaseSecurityError as error:
         raise HTTPException(
-            status_code=status.HTTP_status.HTTP_400_BAD_REQUEST_BAD_REQUEST,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(error),
         )
 

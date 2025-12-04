@@ -13,7 +13,7 @@ class CommentUpdateSchema(BaseModel):
 
 
 class CommentLikeSchema(BaseModel):
-    liked: bool = True  
+    liked: bool = True
 
 
 class CommentBaseSchema(BaseModel):
@@ -29,11 +29,10 @@ class CommentBaseSchema(BaseModel):
 
 
 class CommentSchema(CommentBaseSchema):
-    username: str  
+    username: str
     like_count: int
     user_has_liked: bool = False
     replies: list["CommentSchema"] = []
-
 
 
 CommentSchema.model_rebuild()

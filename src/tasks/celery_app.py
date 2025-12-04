@@ -6,6 +6,7 @@ from src.config.get_settings import get_settings
 
 settings = get_settings()
 
+
 def make_celery() -> Celery:
     """
     Factory function — creates Celery app with proper config from settings.
@@ -16,7 +17,7 @@ def make_celery() -> Celery:
         broker=settings.CELERY_BROKER_URL,
         backend=settings.CELERY_RESULT_BACKEND,
         include=[
-            "src.tasks.comment_notifications",   # ← forces import at startup
+            "src.tasks.comment_notifications",  # ← forces import at startup
             "src.tasks.cleanup",
             # add every task module here
         ],

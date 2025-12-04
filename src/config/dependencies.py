@@ -4,6 +4,7 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.config.settings import TestingSettings, Settings, BaseAppSettings
+
 # from src.database import get_db, UserModel
 from src.config.get_settings import get_settings
 from src.notifications import EmailSenderInterface, EmailSender
@@ -50,7 +51,7 @@ def get_accounts_email_notificator(
         activation_complete_email_template_name=settings.ACTIVATION_COMPLETE_EMAIL_TEMPLATE_NAME,
         password_email_template_name=settings.PASSWORD_RESET_TEMPLATE_NAME,
         password_complete_email_template_name=settings.PASSWORD_RESET_COMPLETE_TEMPLATE_NAME,
-        comment_reply_template_name=settings.COMMENT_REPLY_TEMPLATE_NAME
+        comment_reply_template_name=settings.COMMENT_REPLY_TEMPLATE_NAME,
     )
 
 
@@ -64,4 +65,3 @@ def get_s3_storage_client(
         secret_key=settings.S3_STORAGE_SECRET_KEY,
         bucket_name=settings.S3_BUCKET_NAME,
     )
-

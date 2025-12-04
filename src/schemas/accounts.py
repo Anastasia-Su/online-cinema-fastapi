@@ -3,7 +3,6 @@ from pydantic import BaseModel, EmailStr, field_validator, ConfigDict
 from src.database import accounts_validators
 
 
-
 class BaseEmailPasswordSchema(BaseModel):
     email: EmailStr
     password: str
@@ -31,12 +30,12 @@ class PasswordResetRequestSchema(BaseModel):
 
 class PasswordResetCompleteRequestSchema(BaseEmailPasswordSchema):
     token: str
-    
-    
+
+
 class ChangePasswordRequestSchema(BaseModel):
     old_password: str
     new_password: str
-    
+
     model_config: ConfigDict = ConfigDict(from_attributes=True)
 
     @field_validator("new_password")

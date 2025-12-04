@@ -30,7 +30,9 @@ class MovieRatingModel(Base):
     movie_id: Mapped[int] = mapped_column(
         ForeignKey("movies.id", ondelete="CASCADE"), primary_key=True
     )
-    rating: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")  # 1–10
+    rating: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )  # 1–10
     created_at: Mapped[datetime] = mapped_column(default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         default=func.now(), onupdate=func.now()
@@ -67,7 +69,7 @@ class MovieCommentModel(Base):
     user: Mapped["UserModel"] = relationship(
         "UserModel",
         back_populates="movie_comments",
-        lazy="joined",  
+        lazy="joined",
     )
 
 

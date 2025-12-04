@@ -43,15 +43,15 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    
+
     connectable = sync_engine
-    
+
     with connectable.connect() as connection:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
             compare_type=True,
-            compare_server_default=True
+            compare_server_default=True,
         )
 
         with context.begin_transaction():
@@ -66,13 +66,13 @@ def run_migrations_online() -> None:
 
     """
     connectable = sync_engine
-    
+
     with connectable.connect() as connection:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
             compare_type=True,
-            compare_server_default=True
+            compare_server_default=True,
         )
 
         with context.begin_transaction():

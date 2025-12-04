@@ -1,10 +1,11 @@
 """Add Movies
 
 Revision ID: d9051f8e144d
-Revises: 
+Revises:
 Create Date: 2025-10-18 21:56:40.317059
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op
@@ -12,7 +13,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'd9051f8e144d'
+revision: str = "d9051f8e144d"
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

@@ -145,7 +145,7 @@ class EmailSender(EmailSenderInterface):
         )
         subject = "Your comment is replied"
         await self._send_email(email, subject, html_content)
-        
+
     async def send_comment_like_email(
         self, email: str, parent_preview: str, comment_link: str
     ) -> None:
@@ -158,4 +158,3 @@ class EmailSender(EmailSenderInterface):
         )
         subject = "Your comment is liked"
         await self._send_email(email, subject, html_content)
-        

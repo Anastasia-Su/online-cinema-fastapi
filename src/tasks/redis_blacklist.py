@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 
 _redis: aioredis.Redis | None = None
 
+
 async def get_redis() -> aioredis.Redis:
     """Get shared Redis connection (lazy init)."""
     global _redis
@@ -21,14 +22,11 @@ async def get_redis() -> aioredis.Redis:
             raise RuntimeError("Cannot connect to Redis. Is Docker running?")
     return _redis
 
-async def revoke_token(
-    token: str,
-    expires_at: datetime,
-    redis: aioredis.Redis
-):
+
+async def revoke_token(token: str, expires_at: datetime, redis: aioredis.Redis):
     if expires_at.tzinfo is None:
         expires_at = expires_at.replace(tzinfo=timezone.utc)
-    
+
     ttl = max(0, int((expires_at - datetime.now(timezone.utc)).total_seconds()))
     if ttl <= 0:
         return
