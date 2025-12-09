@@ -18,9 +18,10 @@ from src.database import (
     UserFavoriteMovieModel,
     MovieLikeModel,
     get_db,
-    get_current_user,
+    # get_current_user,
 )
-
+# from src.database.session_db import get_current_user
+from src.config.get_current_user import get_current_user
 from src.schemas import MovieListResponseSchema, MovieListItemSchema, MovieDetailSchema
 from src.schemas.movies import MovieCreateSchema, MovieUpdateSchema
 from ..utils import SortBy, SortOrder, toggle_movie_reaction, increment_counter

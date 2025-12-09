@@ -51,7 +51,7 @@ class MovieBaseSchema(BaseModel):
     def validate_release_year(cls, v: int) -> int:
         current_year = datetime.now().year
         if v > current_year + 5:
-            raise ValueError(f"Release year cannot be more than 5 years in the future")
+            raise ValueError("Release year cannot be more than 5 years in the future")
         if v < 1895:
             raise ValueError("Movies didn't exist before 1895")
         return v

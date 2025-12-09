@@ -86,6 +86,9 @@ async def get_movie_list(
     price_max: Optional[float] = Query(None, ge=0.0, description="Maximum price"),
     db: AsyncSession = Depends(get_db),
 ):
+    
+    import os
+    print(os.environ.get("ENVIRONMENT"))
 
     # Validate filter inputs
     if year_min is not None and year_max is not None and year_min > year_max:
@@ -104,12 +107,10 @@ async def get_movie_list(
             detail="price_min must be less than or equal to price_max",
         )
 
-    # stmt = select(MovieModel).distinct()
+  
     stmt = select(
         MovieModel,
-        # func.coalesce(fav_count_subq, 0).label("favorite_count"),
-        # func.coalesce(like_count_subq, 0).label("like_count"),
-        # func.coalesce(comment_count_subq, 0).label("comment_count"),
+        
     ).distinct()
 
     search_conditions = []

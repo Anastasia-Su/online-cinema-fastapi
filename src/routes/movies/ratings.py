@@ -6,9 +6,10 @@ from src.database import (
     MovieRatingModel,
     MovieModel,
     get_db,
-    get_current_user,
+    # get_current_user,
     UserModel,
 )
+from src.config.get_current_user import get_current_user
 from ..utils import update_movie_rating_stats
 
 

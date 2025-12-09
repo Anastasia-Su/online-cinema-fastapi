@@ -11,8 +11,9 @@ from src.database import (
     MovieModel,
     UserGroupEnum,
     get_db,
-    get_current_user,
+    # get_current_user,
 )
+from src.config.get_current_user import get_current_user
 from src.schemas.comments import CommentCreateSchema, CommentUpdateSchema, CommentSchema
 
 from ..utils import increment_counter

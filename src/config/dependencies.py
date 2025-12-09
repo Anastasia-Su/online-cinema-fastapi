@@ -19,13 +19,6 @@ from src.exceptions import TokenExpiredError, InvalidTokenError
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
-# def get_settings() -> BaseAppSettings:
-#     environment = os.getenv("ENVIRONMENT", "developing")
-#     if environment == "testing":
-#         return TestingSettings()
-#     return Settings()
-
-
 def get_jwt_auth_manager(
     settings: BaseAppSettings = Depends(get_settings),
 ) -> JWTAuthManagerInterface:

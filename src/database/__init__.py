@@ -30,20 +30,25 @@ from src.database.models.movies.movies_actions import (
 )
 from src.database.validators import accounts as accounts_validators
 from src.database.validators import profiles as profile_validators
+from dotenv import load_dotenv
+load_dotenv()
+environment = os.getenv("ENVIRONMENT", "developing")
+print(">>> DATABASE INIT, ENV =", os.getenv("ENVIRONMENT"))
 
-# environment = os.getenv("ENVIRONMENT", "developing")
+if environment == "testing":
+    from src.database.session_sqlite import (
+        get_sqlite_db_contextmanager as get_db_contextmanager,
+        get_sqlite_db as get_db
+    )
+    from src.database.session_sqlite import reset_sqlite_database as reset_database
+else:
+    from src.database.session_db import (
+        get_db_contextmanager,
+        get_db,
+        # get_current_user,
+        # get_settings,
+        AsyncSessionLocal,
+        sync_engine,
+    )
 
-# if environment == "testing":
-#     from database.session_sqlite import (
-#         get_sqlite_db_contextmanager as get_db_contextmanager,
-#         get_sqlite_db as get_db
-#     )
-# else:
-from src.database.session_db import (
-    get_db_contextmanager,
-    get_db,
-    get_current_user,
-    # get_settings,
-    AsyncSessionLocal,
-    sync_engine,
-)
+from src.database.session_sqlite import reset_sqlite_database as reset_database

@@ -21,7 +21,7 @@ from src.config import (
 from src.config.get_settings import get_settings
 from src.database import (
     get_db,
-    get_current_user,
+    # get_current_user,
     UserGroupModel,
     UserGroupEnum,
     ActivationTokenModel,
@@ -29,6 +29,7 @@ from src.database import (
     RefreshTokenModel,
     UserModel,
 )
+from src.config.get_current_user import get_current_user
 
 from src.exceptions import BaseSecurityError
 from src.notifications import EmailSenderInterface
@@ -282,7 +283,7 @@ async def logout_user(
         payload = jwt_manager.decode_access_token(token)
 
         expires_at = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
-    except:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized"
         )
@@ -303,7 +304,7 @@ async def logout_user(
 
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-    except Exception as e:
+    except Exception:
         # return MessageResponseSchema(message=str(e))
         return HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Logout failed"

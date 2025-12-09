@@ -14,8 +14,9 @@ from src.database import (
     DirectorModel,
     GenreModel,
     get_db,
-    get_current_user,
+    # get_current_user,
 )
+from src.config.get_current_user import get_current_user
 
 from src.schemas import (
     UserListSchema,

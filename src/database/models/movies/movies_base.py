@@ -2,6 +2,9 @@ import uuid as uuid_lib
 from typing import Optional
 from datetime import datetime
 
+# AT THE VERY END OF THE FILE WHERE CertificationModel IS DEFINED
+
+
 from sqlalchemy import (
     String,
     Integer,

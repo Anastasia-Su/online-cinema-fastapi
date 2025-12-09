@@ -1,11 +1,17 @@
+
+import os
+
+ENV = os.getenv("ENVIRONMENT", "testing")
+
 import asyncio
 import random
 from faker import Faker
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, insert
+from sqlalchemy.ext.asyncio import AsyncSession
+from src.database import get_db_contextmanager
 
 from src.database import (
-    AsyncSessionLocal,
+    # AsyncSessionLocal,
     MovieModel,
     GenreModel,
     StarModel,
@@ -16,12 +22,24 @@ from src.database import (
 )
 
 
+if ENV == "testing":
+    from src.database.session_sqlite import AsyncSQLiteSessionLocal, get_sqlite_db
+
+    AsyncSessionLocal = AsyncSQLiteSessionLocal
+    get_db = get_sqlite_db
+else:
+    from src.database.session_db import AsyncSessionLocal as AsyncPostgresSessionLocal, get_db as get_postgres_db
+
+    AsyncSessionLocal = AsyncPostgresSessionLocal
+    get_db = get_postgres_db
+
+
 fake = Faker()
 
 NUM_MOVIES = 10_000  # number of movies to add
 
 
-async def seed_movies():
+async def seed_movies(num_movies=NUM_MOVIES):
     async with AsyncSessionLocal() as session:
         # ✅ Keep existing data — just reuse it
         certifications = (
@@ -71,7 +89,7 @@ async def seed_movies():
 
         # --- Create new movies ---
         movies = []
-        for _ in range(NUM_MOVIES):
+        for _ in range(num_movies):
             certification = random.choice(certifications)
             movie_genres = random.sample(genres, k=random.randint(1, 3))
             movie_stars = random.sample(stars, k=random.randint(2, 5))
@@ -122,6 +140,121 @@ async def seed_user_groups() -> None:
             print("User groups seeded successfully.")
 
 
-if __name__ == "__main__":
-    # asyncio.run(seed_movies())
-    asyncio.run(seed_user_groups())
+# if __name__ == "__main__":
+#     # asyncio.run(seed_movies())
+#     asyncio.run(seed_user_groups())
+# async def seed_users(db):
+#     from src.database.models.accounts import UserModel, UserGroupModel
+
+#     groups = (await db.execute(select(UserGroupModel))).scalars().all()
+#     group_map = {g.name.value: g.id for g in groups}
+
+#     admin = UserModel.create(
+#         email="admin@test.com",
+#         raw_password="Password1!",
+#         group_id=group_map["admin"],
+#     )
+#     admin.is_active = True
+
+#     moderator = UserModel.create(
+#         email="mod@test.com",
+#         raw_password="Password2!",
+#         group_id=group_map["moderator"],
+#     )
+#     moderator.is_active = True
+
+#     user = UserModel.create(
+#         email="user@test.com",
+#         raw_password="Password3!",
+#         group_id=group_map["user"],
+#     )
+#     user.is_active = True
+
+#     db.add_all([admin, moderator, user])
+#     await db.commit()
+
+#     return {"admin": admin, "moderator": moderator, "user": user}
+# async def seed_users():
+#     from sqlalchemy import select
+#     from src.database.models.accounts import UserModel, UserGroupModel
+
+#     async with get_db_contextmanager() as db:
+#         groups = (await db.execute(select(UserGroupModel))).scalars().all()
+#         group_map = {g.name.value: g.id for g in groups}
+
+#         users = [
+#             UserModel.create(
+#                 email="admin@test.com",
+#                 raw_password="Password1!",
+#                 group_id=group_map["admin"]
+#             ),
+#             UserModel.create(
+#                 email="mod@test.com",
+#                 raw_password="Password2!",
+#                 group_id=group_map["moderator"]
+#             ),
+#             UserModel.create(
+#                 email="user@test.com",
+#                 raw_password="Password3!",
+#                 group_id=group_map["user"]
+#             ),
+#         ]
+
+#         # All users must be active for testing
+#         for u in users:
+#             u.is_active = True
+
+#         db.add_all(users)
+#         await db.commit()
+
+async def seed_users():
+    from src.database.models.accounts import UserModel, UserGroupModel
+    from sqlalchemy import select
+
+    # Fetch groups using the SAME session that just created them
+    async with AsyncSessionLocal() as session:
+        groups = (await session.execute(select(UserGroupModel))).scalars().all()
+        group_map = {g.name.value: g.id for g in groups}
+
+        # Make sure we have all groups (they were just seeded)
+        if len(group_map) < 3:
+            raise RuntimeError("User groups not seeded properly!")
+
+        users = [
+            UserModel.create(
+                email="admin@test.com",
+                raw_password="Password1!",
+                group_id=group_map["admin"]
+            ),
+            UserModel.create(
+                email="mod@test.com",
+                raw_password="Password2!",
+                group_id=group_map["moderator"]
+            ),
+            UserModel.create(
+                email="user@test.com",
+                raw_password="Password3!",
+                group_id=group_map["user"]
+            ),
+        ]
+
+        session.add_all(users)
+    
+async def seed_certifications(session: AsyncSession):
+    from src.database import CertificationModel   # adjust path
+    from sqlalchemy import insert, select
+
+    count = (await session.execute(select(func.count()).select_from(CertificationModel))).scalar_one()
+    if count == 0:
+        await session.execute(insert(CertificationModel).values([
+            {"id": 1, "name": "G"},
+            {"id": 2, "name": "PG"},
+            {"id": 3, "name": "PG-13"},
+            {"id": 4, "name": "R"},
+        ]))
+
+
+def make_token(user, jwt_manager):
+    access = jwt_manager.create_access_token({"user_id": user.id})
+    return {"Authorization": f"Bearer {access}"}
+

@@ -3,7 +3,7 @@ from fastapi import Request, HTTPException, status, Depends
 
 # src/security/http.py
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi import HTTPException, status
+
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
