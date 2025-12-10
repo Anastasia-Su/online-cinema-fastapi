@@ -246,7 +246,7 @@ async def activate_account(
             await db.delete(token_record)
             await db.commit()
         raise HTTPException(
-            status_code=status.HTTP_status.HTTP_400_BAD_REQUEST_BAD_REQUEST,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired activation token.",
         )
 
@@ -320,7 +320,7 @@ async def change_password(
 
     if not user.verify_password(data.old_password):
         raise HTTPException(
-            status_code=status.HTTP_status.HTTP_400_BAD_REQUEST_BAD_REQUEST,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Old password is incorrect.",
         )
 
@@ -458,7 +458,7 @@ async def reset_password(
     user = result.scalars().first()
     if not user or not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_status.HTTP_400_BAD_REQUEST_BAD_REQUEST,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid email or token.",
         )
 
@@ -471,7 +471,7 @@ async def reset_password(
             await db.run_sync(lambda s: s.delete(token_record))
             await db.commit()
         raise HTTPException(
-            status_code=status.HTTP_status.HTTP_400_BAD_REQUEST_BAD_REQUEST,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid email or token.",
         )
 
@@ -482,7 +482,7 @@ async def reset_password(
         await db.run_sync(lambda s: s.delete(token_record))
         await db.commit()
         raise HTTPException(
-            status_code=status.HTTP_status.HTTP_400_BAD_REQUEST_BAD_REQUEST,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid email or token.",
         )
 

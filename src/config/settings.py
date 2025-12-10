@@ -66,7 +66,7 @@ class Settings(BaseAppSettings):
 
 class TestingSettings(BaseAppSettings):
     PATH_TO_DB: str = ":memory:" 
-    S3_STORAGE_ENDPOINT: str = "http://localhost:9000"
+    # S3_STORAGE_ENDPOINT: str = "http://localhost:9000"
     CELERY_BROKER_URL: str = "memory://"
     CELERY_RESULT_BACKEND: str = "memory://"  
     

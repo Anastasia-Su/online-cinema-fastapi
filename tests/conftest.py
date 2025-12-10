@@ -3,6 +3,7 @@ import os
 import asyncio
 from fastapi.testclient import TestClient
 os.environ["ENVIRONMENT"] = "testing"
+from src.tasks.redis_blacklist import get_redis
 
 from src.database.session_sqlite import AsyncSQLiteSessionLocal
 AsyncSessionLocal = AsyncSQLiteSessionLocal
@@ -29,38 +30,10 @@ from src.storages import S3StorageClient
 from tests.doubles.fakes.storage import FakeS3Storage
 from tests.doubles.stubs.emails import StubEmailSender
 
-import aioredis
 
 
 import asyncio
 import pytest
-
-# @pytest.fixture(autouse=True)  # ← NOT pytest_asyncio.fixture — SYNC FIXTURE!
-# def fresh_event_loop():
-#     """
-#     Gives every test its own fresh event loop.
-#     This is the ONLY way to make httpx.AsyncClient work on Windows with multiple tests.
-#     """
-#     loop = asyncio.new_event_loop()
-#     asyncio.set_event_loop(loop)
-#     yield
-#     loop.close()
-# @pytest_asyncio.fixture(autouse=True)
-# async def fresh_event_loop():
-#     """
-#     This gives EVERY test its own fresh event loop.
-#     This is the ONLY way to make AsyncClient work on Windows with multiple tests.
-#     """
-#     loop = asyncio.new_event_loop()
-#     asyncio.set_event_loop(loop)
-#     yield
-#     if not loop.is_closed():
-#         loop.close()
-# @pytest_asyncio.fixture
-# async def redis_client():
-#     redis = await aioredis.from_url("redis://localhost", decode_responses=True)
-#     yield redis
-#     await redis.close()
     
 from src.database.session_sqlite import sqlite_engine
 from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -68,7 +41,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 # conftest.py — THE FINAL, BULLETPROOF db_session (copy-paste this)
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
-
+from .utils import FakeRedis
 
 # @pytest_asyncio.fixture
 # async def db_session():
@@ -181,9 +154,6 @@ async def fixture_seed_database(request, reset_db, db_session):
     if "no_seed" in request.keywords:
         return
     
-    # async with AsyncSessionLocal() as session:
-    # session_factory = request.getfixturevalue("TestSessionLocal")
-    # async with session_factory() as session:
     await seed_user_groups(db_session)
     await seed_movies(db_session, num_movies=50)
     await seed_users(db_session)
@@ -314,6 +284,8 @@ async def db_session():
     """
     async with get_db_contextmanager() as session:
         yield session
+        
+        await session.rollback()
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -384,3 +356,10 @@ async def jwt_manager() -> JWTAuthManagerInterface:
 
 #     yield db_session
 
+
+
+@pytest_asyncio.fixture
+async def fake_redis():
+    yield FakeRedis()
+
+app.dependency_overrides[get_redis] = lambda: fake_redis

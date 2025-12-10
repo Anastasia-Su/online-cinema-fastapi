@@ -3,6 +3,7 @@ from typing import Annotated
 from sqlalchemy import select, update, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import and_
 from sqlalchemy.orm import joinedload, selectinload
 from src.database import (
     UserModel,
