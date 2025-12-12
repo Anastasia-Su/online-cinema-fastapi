@@ -26,29 +26,6 @@ from ..utils import SortBy, SortOrder, increment_counter
 from sqlalchemy import select, func, literal_column
 from sqlalchemy.orm import contains_eager
 
-# fav_count_subq = (
-#     select(func.count(UserFavoriteMovieModel.c.user_id))
-#         .where(UserFavoriteMovieModel.c.movie_id == MovieModel.id)
-#         .scalar_subquery()
-# )
-
-# comment_count_subq = (
-#     select(func.count(MovieCommentModel.id))
-#     .where(MovieCommentModel.movie_id == MovieModel.id)
-#     .scalar_subquery()
-# )
-
-# like_count_subq = (
-#     select(func.count(MovieLikeModel.c.user_id))
-#         .where(
-#         and_(
-#             MovieLikeModel.c.movie_id == MovieModel.id,
-#             MovieLikeModel.c.like.is_(True)
-#         )
-#     )
-#         .scalar_subquery()
-# )
-
 
 router = APIRouter(prefix="/movies", tags=["movies"])
 

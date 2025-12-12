@@ -34,7 +34,7 @@ async def test_registration(e2e_client, reset_db_once_for_e2e, settings, seed_us
     - Ensure the email body contains the activation link.
     """
     user_data = {
-        "email": "test@mate.com",
+        "email": "test@example.com",
         "password": "StrongPassword123!"
     }
 
@@ -96,7 +96,7 @@ async def test_account_activation(e2e_client, settings, e2e_db_session):
     - Fetch the list of emails from MailHog via its API.
     - Verify the email sent confirms the activation and contains the expected details.
     """
-    user_email = "test@mate.com"
+    user_email = "test@example.com"
 
     stmt = (
         select(ActivationTokenModel)
@@ -169,7 +169,7 @@ async def test_user_login(e2e_client, e2e_db_session):
     - Validate that the refresh token is stored in the database.
     """
     user_data = {
-        "email": "test@mate.com",
+        "email": "test@example.com",
         "password": "StrongPassword123!"
     }
 
@@ -216,7 +216,7 @@ async def test_request_password_reset(e2e_client, e2e_db_session, settings):
     - Verify the email was sent and contains the correct information.
     """
 
-    user_email = "test@mate.com"
+    user_email = "test@example.com"
     reset_url = "/api/v1/accounts/password-reset/request/"
 
     response = await e2e_client.post(reset_url, json={"email": user_email})
@@ -287,7 +287,7 @@ async def test_reset_password(e2e_client, e2e_db_session, settings):
     - Verify the email was sent and contains the correct information.
     """
 
-    user_email = "test@mate.com"
+    user_email = "test@example.com"
     new_password = "NewSecurePassword123!"
 
     stmt = (
@@ -378,7 +378,7 @@ async def test_user_login_with_new_password(e2e_client, e2e_db_session):
     """
 
     user_data = {
-        "email": "test@mate.com",
+        "email": "test@example.com",
         "password": "NewSecurePassword123!"
     }
 

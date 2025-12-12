@@ -77,15 +77,35 @@ async def seed_movies(session: AsyncSession, num_movies=NUM_MOVIES):
         session.add_all(genres)
         await session.flush()
 
-    if not stars:
-        stars = [StarModel(name=fake.name()) for _ in range(20)]
-        session.add_all(stars)
-        await session.flush()
+    # if not stars:
+    #     stars = [StarModel(name=fake.name()) for _ in range(20)]
+    #     session.add_all(stars)
+    #     await session.flush()
+    existing_star_names = {s.name for s in stars}
+    new_stars = []
+    while len(new_stars) < 20:
+        name = fake.unique.name()
+        if name not in existing_star_names:
+            new_stars.append(StarModel(name=name))
+            existing_star_names.add(name)
+    session.add_all(new_stars)
+    await session.flush()
+    stars.extend(new_stars)
 
-    if not directors:
-        directors = [DirectorModel(name=fake.name()) for _ in range(10)]
-        session.add_all(directors)
-        await session.flush()
+    # if not directors:
+    #     directors = [DirectorModel(name=fake.name()) for _ in range(10)]
+    #     session.add_all(directors)
+    #     await session.flush()
+    existing_director_names = {d.name for d in directors}
+    new_directors = []
+    while len(new_directors) < 10:
+        name = fake.unique.name()
+        if name not in existing_director_names:
+            new_directors.append(DirectorModel(name=name))
+            existing_director_names.add(name)
+    session.add_all(new_directors)
+    await session.flush()
+    directors.extend(new_directors)
 
     # --- Create new movies ---
     movies = []

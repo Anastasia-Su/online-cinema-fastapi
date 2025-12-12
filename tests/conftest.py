@@ -109,46 +109,7 @@ async def reset_db_once_for_e2e(request):
     """
     await reset_database()
 
-# @pytest_asyncio.fixture
-# async def db_session():
-#     session = AsyncSessionLocal()
-#     await session.begin()
-#     # try:
-#     yield session
-#     # finally:
-#     #     await session.rollback()
-#     #     await session.close()
 
-
-
-# @pytest_asyncio.fixture(autouse=True, scope="session", name="seed_database")
-# async def setup_database(request):
-#     from src.database import Base
-#     # from src.database.populate_db import seed_user_groups, seed_movies, seed_users
-#     if "no_seed" in request.keywords:
-#         return
-#     # Create all tables
-#     async with sqlite_engine.begin() as conn:
-#         await conn.run_sync(Base.metadata.create_all)
-
-#     # Seed data
-#     async with AsyncSessionLocal() as session:
-#         async with session.begin():
-#             await seed_user_groups(session)
-#             await seed_movies(session, num_movies=50)
-#             await seed_users(session)
-       
-# THIS RUNS ONCE — SEED DATA
-# @pytest_asyncio.fixture(autouse=True, scope="session")
-# async def seed_once():
-#     async with AsyncSessionLocal() as session:
-#         async with session.begin():
-#             from src.database.populate_db import seed_user_groups, seed_movies, seed_users
-#             await seed_user_groups(session)
-#             await seed_movies(session, num_movies=50)
-#             await seed_users(session)
-#             await session.commit()
-            
 @pytest_asyncio.fixture(name="seed_database", autouse=True)
 async def fixture_seed_database(request, reset_db, db_session):
     if "no_seed" in request.keywords:
@@ -358,8 +319,25 @@ async def jwt_manager() -> JWTAuthManagerInterface:
 
 
 
-@pytest_asyncio.fixture
-async def fake_redis():
-    yield FakeRedis()
+# @pytest_asyncio.fixture
+# async def fake_redis():
+#     yield FakeRedis()
 
-app.dependency_overrides[get_redis] = lambda: fake_redis
+
+
+
+@pytest.fixture(
+    # scope="session"
+    )
+def fake_redis():
+    return FakeRedis()
+
+@pytest_asyncio.fixture(autouse=True)
+async def override_redis(fake_redis):
+    app.dependency_overrides[get_redis] = lambda: fake_redis
+@pytest_asyncio.fixture(scope="session")
+def event_loop():
+    import asyncio
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()

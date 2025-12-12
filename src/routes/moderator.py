@@ -36,7 +36,7 @@ from .utils import resolve_relations
 router = APIRouter(prefix="/moderator", tags=["moderator"])
 
 
-@router.get("/users", response_model=list[UserListSchema])
+@router.get("/users/", response_model=list[UserListSchema])
 async def list_users(
     db: AsyncSession = Depends(get_db),
     _: UserModel = Depends(require_moderator_or_admin),
