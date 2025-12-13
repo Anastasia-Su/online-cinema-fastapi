@@ -1,11 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 from src.database import (
     UserModel,
     UserGroupModel,
     UserGroupEnum,
+    CartModel,
+    CartItemModel,
+    MovieModel,
     get_db,
     # get_current_user,
 )
@@ -16,6 +19,7 @@ from src.schemas import (
     UserDetailSchema,
     UserGroupUpdateSchema,
     UserActivateSchema,
+    CartSchema,
 )
 from src.config.get_admin import require_admin
 from .utils import backfill_all_counters
@@ -76,3 +80,41 @@ async def recount_all_counters(
 ):
     await backfill_all_counters(db=db)
     return {"message": "Recount started"}
+
+
+
+@router.get(
+    "/cart/{user_id}",
+    response_model=CartSchema,
+    summary="Get User Cart",
+    description="Retrieve the current user's shopping cart. If the cart does not exist, it is automatically created.",
+    status_code=status.HTTP_200_OK,
+    responses={
+        401: {"description": "Unauthorized - User is not logged in."},
+        500: {"description": "Internal Server Error - Could not retrieve the cart."},
+        404: {"description": "Cart not found."},
+    },
+)
+async def get_user_cart(
+    user_id: int,
+    _: UserModel = Depends(require_admin),
+    db: AsyncSession = Depends(get_db), 
+    
+) -> CartModel:
+    result = await db.execute(
+        select(CartModel)
+        .options(
+        selectinload(CartModel.items)
+            .selectinload(CartItemModel.movie)
+            .selectinload(MovieModel.genres) 
+        )
+        .where(CartModel.user_id == user_id)
+    )
+    cart = result.unique().scalar_one_or_none()
+    if not cart:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Cart for user with id {user_id} not found."
+        )
+        
+    return cart
+

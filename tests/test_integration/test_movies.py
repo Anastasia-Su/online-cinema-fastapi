@@ -6,7 +6,7 @@ from sqlalchemy.orm import joinedload
 
 from src.database import MovieModel
 from src.database import UserModel
-from ..utils import make_token
+from ..utils import make_token, get_headers
 
 
 @pytest.mark.no_seed
@@ -439,12 +439,8 @@ async def test_post_movie_access_control(
     else:  # "user"
         group_id = 1
 
-    stmt = select(UserModel).where(UserModel.group_id == group_id)
-    result = await db_session.execute(stmt)
-    user = result.scalars().first()
-    assert user, f"No user found for role {role}"
-
-    headers = await make_token(user, jwt_manager)
+    
+    headers = await get_headers(db_session, jwt_manager, group_id)
 
     payload = {
         "name": "".join(random.choice(string.ascii_letters) for _ in range(12)),
@@ -476,10 +472,8 @@ async def test_post_movie_duplicate_error(client, db_session, jwt_manager):
     results in a 409 conflict error.
     """
 
-    stmt = select(UserModel).where(UserModel.group_id == 2)
-    result = await db_session.execute(stmt)
-    user = result.scalars().first()
-    headers = await make_token(user, jwt_manager)
+
+    headers = await get_headers(db_session, jwt_manager, 2)
     payload = {
         "name": "Name",
         "year": 2000,
@@ -515,10 +509,8 @@ async def test_delete_movie_success(client, db_session, jwt_manager):
 
     movie_id = movie.id
 
-    stmt = select(UserModel).where(UserModel.group_id == 2)
-    result = await db_session.execute(stmt)
-    user = result.scalars().first()
-    headers = await make_token(user, jwt_manager)
+  
+    headers = await get_headers(db_session, jwt_manager, 2)
 
     response = await client.delete(f"/moderator/movies/{movie_id}/", headers=headers)
     assert (
@@ -538,11 +530,8 @@ async def test_delete_movie_not_found(client, db_session, jwt_manager):
     """
     non_existent_id = 99999
 
-    stmt = select(UserModel).where(UserModel.group_id == 2)
-    result = await db_session.execute(stmt)
-    user = result.scalars().first()
-
-    headers = await make_token(user, jwt_manager)
+ 
+    headers = await get_headers(db_session, jwt_manager, 2)
 
     response = await client.delete(
         f"/moderator/movies/{non_existent_id}/", headers=headers
@@ -564,11 +553,8 @@ async def test_update_movie_success(client, db_session, jwt_manager):
 
     movie_id = movie.id
 
-    stmt = select(UserModel).where(UserModel.group_id == 2)
-    result = await db_session.execute(stmt)
-    user = result.scalars().first()
-
-    headers = await make_token(user, jwt_manager)
+   
+    headers = await get_headers(db_session, jwt_manager, 2)
     update_data = {
         "name": "Updated Movie Name",
         "year": 1999,
@@ -599,11 +585,7 @@ async def test_update_movie_not_found(client, db_session, jwt_manager):
     non_existent_id = 99999
     update_data = {"name": "Non-existent Movie", "year": 2005}
 
-    stmt = select(UserModel).where(UserModel.group_id == 2)
-    result = await db_session.execute(stmt)
-    user = result.scalars().first()
-
-    headers = await make_token(user, jwt_manager)
+    headers = await get_headers(db_session, jwt_manager, 2)
 
     response = await client.patch(
         f"/moderator/movies/{non_existent_id}/", json=update_data, headers=headers

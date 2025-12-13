@@ -20,7 +20,7 @@ from src.tasks.redis_blacklist import (
     is_token_revoked,
     list_revoked_tokens,
 )
-from ..utils import make_token
+from ..utils import make_token, get_headers
 
 @pytest.mark.asyncio
 async def test_register_user_success(client, db_session):
@@ -1278,12 +1278,13 @@ async def test_get_users_default_parameters(client, db_session, jwt_manager, rol
     else:  # "user"
         group_id = 1
         
-    stmt = select(UserModel).where(UserModel.group_id == group_id)
-    result = await db_session.execute(stmt)
-    user = result.scalars().first()
-    assert user, f"No user found for role {role}"
+    # stmt = select(UserModel).where(UserModel.group_id == group_id)
+    # result = await db_session.execute(stmt)
+    # user = result.scalars().first()
+    # assert user, f"No user found for role {role}"
 
-    headers = await make_token(user, jwt_manager)
+    # headers = await make_token(user, jwt_manager)
+    headers = await get_headers(db_session, jwt_manager, group_id)
     
     response = await client.get("/moderator/users/", headers=headers)
     assert (

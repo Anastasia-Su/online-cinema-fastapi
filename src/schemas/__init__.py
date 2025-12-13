@@ -4,6 +4,7 @@ from src.schemas.movies import (
     MovieListItemSchema,
     MovieCreateSchema,
     MovieUpdateSchema,
+    GenreSchema
 )
 
 from src.schemas.genres import GenreListResponseSchema, GenreCountSchema
@@ -27,4 +28,10 @@ from src.schemas.admin import (
     UserDetailSchema,
     UserGroupUpdateSchema,
     UserActivateSchema,
+)
+
+from src.schemas.cart import (
+    CartSchema,
+    CartItemSchema,
+    MovieCartSchema
 )

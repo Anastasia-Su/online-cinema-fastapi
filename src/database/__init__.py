@@ -51,5 +51,7 @@ else:
         AsyncSessionLocal,
         sync_engine,
     )
+    
+from src.database.models.cart import CartItemModel, CartModel
 
 from src.database.session_sqlite import reset_sqlite_database as reset_database

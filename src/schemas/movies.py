@@ -139,8 +139,6 @@ class MovieListItemSchema(BaseModel):
     year: int
     time: int
     imdb: float
-    # favorite_count: int
-    # like_count: int
 
     model_config: ConfigDict = ConfigDict(from_attributes=True)
 

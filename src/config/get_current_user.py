@@ -34,7 +34,9 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db),
 ) -> UserModel:
     token = credentials.credentials if credentials else None
+    print("Token received:", token)
     if not token:
+        print("JWT error:",)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token"
         )
@@ -61,6 +63,7 @@ async def get_current_user(
     print("payload", payload)
 
     user_id = payload.get("user_id")
+    print("Decoded user_id:", user_id)
 
     result = await db.execute(
         select(UserModel)
