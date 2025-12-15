@@ -35,3 +35,9 @@ from src.schemas.cart import (
     CartItemSchema,
     MovieCartSchema
 )
+
+from src.schemas.order import (
+    OrderItemResponseSchema,
+    OrderResponseSchema,
+    OrderListResponseSchema
+)

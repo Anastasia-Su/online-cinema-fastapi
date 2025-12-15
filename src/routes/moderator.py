@@ -14,6 +14,8 @@ from src.database import (
     StarModel,
     DirectorModel,
     GenreModel,
+    CartModel,
+    CartItemModel,
     get_db,
     # get_current_user,
 )
@@ -205,6 +207,7 @@ async def post_movie(
                 }
             },
         },
+        409: {"description": "Movie is in user's cart."},
     },
     status_code=status.HTTP_204_NO_CONTENT,
 )
@@ -240,6 +243,21 @@ async def delete_movie(
             detail="Movie with the given ID was not found.",
         )
 
+    cart_stmt = (
+        select(CartItemModel)
+        .where(CartItemModel.movie_id == movie_id)
+        .limit(1)
+    )
+
+    exists = (await db.execute(cart_stmt)).first()
+
+    if exists:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Can't delete. This movie is in user's cart.",
+        )
+            
+    
     await db.delete(movie)
     await db.commit()
 

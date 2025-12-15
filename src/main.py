@@ -17,6 +17,7 @@ from src.routes import (
     comments_router,
     ratings_router,
     cart_router,
+    order_router,
 )
 
 
@@ -49,3 +50,4 @@ app.include_router(genre_router)
 app.include_router(admin_router)
 app.include_router(moderator_router)
 app.include_router(cart_router)
+app.include_router(order_router)

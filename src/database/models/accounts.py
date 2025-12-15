@@ -137,6 +137,8 @@ class UserModel(Base):
         uselist=False,   
         cascade="all, delete-orphan"
     )
+    orders = relationship("OrderModel", back_populates="user")
+
 
     def __repr__(self):
         return (

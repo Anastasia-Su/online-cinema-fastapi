@@ -53,5 +53,6 @@ else:
     )
     
 from src.database.models.cart import CartItemModel, CartModel
+from src.database.models.order import OrderItemModel, OrderModel, OrderStatusEnum
 
 from src.database.session_sqlite import reset_sqlite_database as reset_database

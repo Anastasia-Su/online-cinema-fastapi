@@ -118,3 +118,37 @@ async def get_user_cart(
         
     return cart
 
+
+
+@router.get(
+    "/carts/",
+    response_model=list[CartSchema],
+    summary="Get User Cart",
+    description="Retrieve all the shopping carts. ",
+    status_code=status.HTTP_200_OK,
+    responses={
+        401: {"description": "Unauthorized - User is not logged in."},
+        500: {"description": "Internal Server Error - Could not retrieve the cart."},
+        404: {"description": "Cart not found."},
+    },
+)
+async def get_all_carts(
+    _: UserModel = Depends(require_admin),
+    db: AsyncSession = Depends(get_db), 
+    
+) -> CartModel:
+    result = await db.execute(
+        select(CartModel)
+        .options(
+        selectinload(CartModel.items)
+            .selectinload(CartItemModel.movie)
+            .selectinload(MovieModel.genres) 
+        )
+    )
+    carts = result.scalars().all()
+    if not carts:
+        return []
+        
+    return carts
+
+

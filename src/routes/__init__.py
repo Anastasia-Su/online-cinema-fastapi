@@ -8,3 +8,4 @@ from src.routes.profiles import router as profiles_router
 from src.routes.admin import router as admin_router
 from src.routes.moderator import router as moderator_router
 from src.routes.cart import router as cart_router
+from src.routes.order import router as order_router
