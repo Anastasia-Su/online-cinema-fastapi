@@ -16,6 +16,7 @@ class OrderItemResponseSchema(BaseModel):
 
 class OrderResponseSchema(BaseModel):
     id: int
+    user_id: int
     created_at: datetime
     status: OrderStatusEnum
     total_amount: Decimal

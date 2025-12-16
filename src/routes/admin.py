@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +10,9 @@ from src.database import (
     CartModel,
     CartItemModel,
     MovieModel,
+    OrderModel,
+    OrderItemModel,
+    OrderStatusEnum,
     get_db,
     # get_current_user,
 )
@@ -20,6 +24,7 @@ from src.schemas import (
     UserGroupUpdateSchema,
     UserActivateSchema,
     CartSchema,
+    OrderResponseSchema
 )
 from src.config.get_admin import require_admin
 from .utils import backfill_all_counters
@@ -150,5 +155,37 @@ async def get_all_carts(
         return []
         
     return carts
+
+
+@router.get(
+    "/orders",
+    response_model=list[OrderResponseSchema],
+    summary="Admin: list all orders",
+)
+async def admin_list_orders(
+    user_id: int | None = None,
+    status: OrderStatusEnum | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    _: UserModel = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = select(OrderModel).options(
+        selectinload(OrderModel.items)
+        .selectinload(OrderItemModel.movie)
+    )
+
+    if user_id:
+        stmt = stmt.where(OrderModel.user_id == user_id)
+    if status:
+        stmt = stmt.where(OrderModel.status == status)
+    if date_from:
+        stmt = stmt.where(OrderModel.created_at >= date_from)
+    if date_to:
+        stmt = stmt.where(OrderModel.created_at <= date_to)
+
+    result = await db.execute(stmt.order_by(OrderModel.created_at.desc()))
+    return result.scalars().all()
+
 
 

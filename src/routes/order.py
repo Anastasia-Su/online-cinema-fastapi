@@ -75,7 +75,7 @@ async def place_order(
         .join(OrderModel, OrderItemModel.order_id == OrderModel.id)
         .where(
             OrderModel.user_id == user.id,
-            OrderModel.status == OrderStatusEnum.PENDING,
+            OrderModel.status == OrderStatusEnum.PAID,
             OrderItemModel.movie_id.in_(movie_ids),
         )
     )
