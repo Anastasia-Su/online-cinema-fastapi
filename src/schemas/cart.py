@@ -8,7 +8,7 @@ class MovieCartSchema(MovieListItemSchema):
     # genres: list[GenreListResponseSchema]
     genres: list[GenreSchema]
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config: ConfigDict = ConfigDict(from_attributes=True)
 
 
 class CartItemSchema(BaseModel):

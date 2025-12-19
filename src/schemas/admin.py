@@ -28,7 +28,7 @@ class UserListSchema(BaseModel):
 class UserDetailSchema(UserListSchema):
     created_at: str = Field(alias="created")
     updated_at: str = Field(alias="updated")
-    model_config = ConfigDict(from_attributes=True)
+    model_config: ConfigDict = ConfigDict(from_attributes=True)
 
 
 class UserActivateSchema(BaseModel):

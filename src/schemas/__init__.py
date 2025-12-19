@@ -41,3 +41,9 @@ from src.schemas.order import (
     OrderResponseSchema,
     OrderListResponseSchema
 )
+
+from src.schemas.payments import (
+    PaymentListSchema,
+    PaymentItemResponseSchema,
+    PaymentResponseSchema,
+)

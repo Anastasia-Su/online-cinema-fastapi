@@ -25,7 +25,7 @@ class CommentBaseSchema(BaseModel):
     movie_id: int
     parent_id: Optional[int] = None
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config: ConfigDict = ConfigDict(from_attributes=True)
 
 
 class CommentSchema(CommentBaseSchema):

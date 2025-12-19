@@ -28,6 +28,39 @@ from src.schemas import (
 )
 from src.config.get_admin import require_admin
 from .utils import backfill_all_counters
+import stripe
+from decimal import Decimal
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy import select, delete, exists
+from src.config.get_settings import get_settings
+from src.database import (
+    get_db,
+    CartModel,
+    CartItemModel,
+    UserModel,
+    MovieModel,
+    OrderItemModel,
+    OrderModel,
+    OrderStatusEnum,
+    PaymentStatusEnum,
+    PaymentModel,
+    PaymentItemModel
+)
+from src.config import BaseAppSettings
+from src.schemas import (
+    CartSchema,
+    CartItemSchema,
+    MovieCartSchema,
+    OrderResponseSchema,
+    OrderListResponseSchema,
+    OrderItemResponseSchema,
+    MovieListItemSchema,
+    PaymentItemResponseSchema,
+    PaymentListSchema,
+    PaymentResponseSchema,
+)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -188,4 +221,77 @@ async def admin_list_orders(
     return result.scalars().all()
 
 
+@router.get(
+    "/payments",
+    response_model=list[PaymentListSchema],
+)
+async def admin_list_payments(
+    user_id: int | None = None,
+    status: PaymentStatusEnum | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    _: UserModel = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = select(PaymentModel)
 
+    if user_id:
+        stmt = stmt.where(PaymentModel.user_id == user_id)
+    if status:
+        stmt = stmt.where(PaymentModel.status == status)
+    if date_from:
+        stmt = stmt.where(PaymentModel.created_at >= date_from)
+    if date_to:
+        stmt = stmt.where(PaymentModel.created_at <= date_to)
+
+    result = await db.execute(stmt.order_by(PaymentModel.created_at.desc()))
+    return result.scalars().all()
+
+
+@router.post("payments/{payment_id}/refund", status_code=status.HTTP_200_OK)
+async def refund_payment(
+    payment_id: int,
+    settings: BaseAppSettings = Depends(get_settings),
+    db: AsyncSession = Depends(get_db),
+    _: UserModel = Depends(require_admin), 
+):
+    
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+
+    result = await db.execute(
+        select(PaymentModel).where(PaymentModel.id == payment_id)
+    )
+    payment = result.scalar_one_or_none()
+
+    if not payment:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Payment not found")
+
+    if payment.status == PaymentStatusEnum.REFUNDED:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="Payment is already refunded")
+    
+    if payment.status not in [PaymentStatusEnum.SUCCESSFUL, PaymentStatusEnum.REFUNDED]:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail="Only successful payments can be refunded",
+        )
+
+   
+    try:
+        stripe_refund = stripe.Refund.create(
+            payment_intent=payment.external_payment_id
+        )
+    except stripe.error.StripeError as e:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail=f"Stripe error: {str(e)}"
+        )
+
+    payment.status = PaymentStatusEnum.REFUNDED
+    db.add(payment)
+    await db.commit()
+
+    return {
+        "payment_id": payment.id,
+        "status": payment.status.value,
+        "stripe_refund_id": stripe_refund.id,
+    }

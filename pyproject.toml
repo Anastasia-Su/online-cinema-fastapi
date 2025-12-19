@@ -37,6 +37,7 @@ dependencies = [
     "aioboto3 (>=15.5.0,<16.0.0)",
     "fastapi-swagger-dark (>=0.0.8,<0.0.9)",
     "aiosqlite (>=0.21.0,<0.22.0)",
+    "stripe (>=14.1.0,<15.0.0)",
 ]
 
 

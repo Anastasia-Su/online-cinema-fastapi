@@ -40,6 +40,10 @@ class BaseAppSettings(BaseSettings):
     CELERY_RESULT_BACKEND: str = os.getenv(
         "CELERY_RESULT_BACKEND", "redis://localhost:6379/1"
     )
+    
+    STRIPE_SECRET_KEY: str = os.getenv("STRIPE_SECRET_KEY")
+    STRIPE_WEBHOOK_SECRET: str = os.getenv("STRIPE_WEBHOOK_SECRET")
+    STRIPE_PAYMENT_METHOD: str = os.getenv("STRIPE_PAYMENT_METHOD")
 
     @property
     def S3_STORAGE_ENDPOINT(self) -> str:

@@ -13,15 +13,15 @@ class RatingCreateSchema(RatingBase):
 
 
 class RatingUpdateSchema(RatingBase):
-    pass  # in case you want to allow changing rating later
+    pass  
 
 
 class RatingSchema(RatingBase):
-    model_config = ConfigDict(from_attributes=True)
-
     user_id: int
     movie_id: int
     created_at: datetime
     updated_at: datetime
 
     username: Optional[str] = None
+    
+    model_config: ConfigDict = ConfigDict(from_attributes=True)

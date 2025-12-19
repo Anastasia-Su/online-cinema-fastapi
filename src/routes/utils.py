@@ -11,7 +11,16 @@ from src.database import (
     UserFavoriteMovieModel,
     MovieCommentModel,
     MovieRatingModel,
+    CartModel,
+    CartItemModel,
+    MovieModel,
+    OrderItemModel,
+    PaymentStatusEnum,
+    PaymentModel,
+    PaymentItemModel
 )
+
+
 
 from sqlalchemy.orm import selectinload
 
@@ -237,3 +246,36 @@ async def resolve_relations(db, model_cls, names: list[str]):
 
     # Return objects in same order as input
     return [found_lowered[low] for low in names_lowered]
+
+
+async def delete_paid_items_for_user(
+    db: AsyncSession,
+    user_id: int,
+):
+    cart = (
+        await db.execute(
+            select(CartModel).where(CartModel.user_id == user_id)
+        )
+    ).scalar_one_or_none()
+
+    if not cart:
+        return 0
+
+    paid_movie_ids_subq = (
+        select(OrderItemModel.movie_id)
+        .join(PaymentItemModel, PaymentItemModel.order_item_id == OrderItemModel.id)
+        .join(PaymentModel, PaymentModel.id == PaymentItemModel.payment_id)
+        .where(
+            PaymentModel.status == PaymentStatusEnum.SUCCESSFUL,
+            PaymentModel.user_id == user_id,
+        )
+    )
+
+    result = await db.execute(
+        delete(CartItemModel).where(
+            CartItemModel.cart_id == cart.id,
+            CartItemModel.movie_id.in_(paid_movie_ids_subq),
+        )
+    )
+
+    # return result.rowcount or 0
