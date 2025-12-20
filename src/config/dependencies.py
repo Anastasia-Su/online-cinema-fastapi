@@ -45,6 +45,8 @@ def get_accounts_email_notificator(
         password_email_template_name=settings.PASSWORD_RESET_TEMPLATE_NAME,
         password_complete_email_template_name=settings.PASSWORD_RESET_COMPLETE_TEMPLATE_NAME,
         comment_reply_template_name=settings.COMMENT_REPLY_TEMPLATE_NAME,
+        comment_like_template_name=settings.COMMENT_LIKE_TEMPLATE_NAME,
+        payment_email_template_name=settings.PAYMENT_EMAIL_TEMPLATE_NAME,
     )
 
 

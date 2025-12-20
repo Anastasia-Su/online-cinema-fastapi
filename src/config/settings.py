@@ -21,6 +21,7 @@ class BaseAppSettings(BaseSettings):
     PASSWORD_RESET_COMPLETE_TEMPLATE_NAME: str = "password_reset_complete.html"
     COMMENT_REPLY_TEMPLATE_NAME: str = "comment_reply.html"
     COMMENT_LIKE_TEMPLATE_NAME: str = "comment_like.html"
+    PAYMENT_EMAIL_TEMPLATE_NAME: str = "payment.html"
     LOGIN_TIME_DAYS: int = 7
 
     EMAIL_HOST: str = os.getenv("EMAIL_HOST", "host")

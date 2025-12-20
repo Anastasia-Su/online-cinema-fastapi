@@ -60,3 +60,7 @@ class EmailSenderInterface(ABC):
         self, email: str, parent_preview: str, comment_link: str
     ):
         pass
+
+    @abstractmethod
+    async def send_payment_email(self, email: str, header: str, message: str):
+        pass

@@ -25,6 +25,7 @@ class EmailSender(EmailSenderInterface):
         password_complete_email_template_name: str,
         comment_reply_template_name: str,
         comment_like_template_name: str,
+        payment_email_template_name: str,
     ):
         self._hostname = hostname
         self._port = port
@@ -41,6 +42,8 @@ class EmailSender(EmailSenderInterface):
         )
         self._comment_reply_template_name = comment_reply_template_name
         self._comment_like_template_name = comment_like_template_name
+
+        self._payment_email_template_name = payment_email_template_name
 
         self._env = Environment(loader=FileSystemLoader(template_dir))
 
@@ -154,7 +157,14 @@ class EmailSender(EmailSenderInterface):
         html_content = template.render(
             email=email,
             parent_preview=parent_preview,
-            reply_link=comment_link,
+            comment_link=comment_link,
         )
         subject = "Your comment is liked"
+        await self._send_email(email, subject, html_content)
+
+    async def send_payment_email(self, email: str, header: str, message: str) -> None:
+
+        template = self._env.get_template(self._payment_email_template_name)
+        html_content = template.render(email=email, header=header, message=message)
+        subject = header
         await self._send_email(email, subject, html_content)

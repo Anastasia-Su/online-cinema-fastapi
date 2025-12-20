@@ -17,9 +17,8 @@ from src.database import (
     OrderItemModel,
     PaymentStatusEnum,
     PaymentModel,
-    PaymentItemModel
+    PaymentItemModel,
 )
-
 
 
 from sqlalchemy.orm import selectinload
@@ -253,9 +252,7 @@ async def delete_paid_items_for_user(
     user_id: int,
 ):
     cart = (
-        await db.execute(
-            select(CartModel).where(CartModel.user_id == user_id)
-        )
+        await db.execute(select(CartModel).where(CartModel.user_id == user_id))
     ).scalar_one_or_none()
 
     if not cart:
@@ -271,7 +268,7 @@ async def delete_paid_items_for_user(
         )
     )
 
-    result = await db.execute(
+    await db.execute(
         delete(CartItemModel).where(
             CartItemModel.cart_id == cart.id,
             CartItemModel.movie_id.in_(paid_movie_ids_subq),

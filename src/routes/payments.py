@@ -16,9 +16,9 @@ from src.database import (
     OrderStatusEnum,
     PaymentStatusEnum,
     PaymentModel,
-    PaymentItemModel
+    PaymentItemModel,
 )
-from src.config import BaseAppSettings
+from src.config import BaseAppSettings, get_accounts_email_notificator
 from src.config.get_current_user import get_current_user
 from src.schemas import (
     CartSchema,
@@ -32,6 +32,7 @@ from src.schemas import (
     PaymentListSchema,
     PaymentResponseSchema,
 )
+from src.notifications import EmailSenderInterface
 
 from .utils import delete_paid_items_for_user
 
@@ -49,7 +50,7 @@ async def create_payment(
     db: AsyncSession = Depends(get_db),
 ):
     stripe.api_key = settings.STRIPE_SECRET_KEY
-    
+
     order = await db.execute(
         select(OrderModel)
         .options(selectinload(OrderModel.items))
@@ -65,9 +66,7 @@ async def create_payment(
         raise HTTPException(404, "Order not found or not payable")
 
     # Validate total
-    calculated_total = sum(
-        Decimal(str(item.price_at_order)) for item in order.items
-    )
+    calculated_total = sum(Decimal(str(item.price_at_order)) for item in order.items)
 
     if calculated_total != order.total_amount:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Order total mismatch")
@@ -87,35 +86,14 @@ async def create_payment(
         "client_secret": intent.client_secret,
         "payment_intent_id": intent.id,
     }
-    
-    
-@router.post("/{payment_id}/cancel")
-async def cancel_payment(payment_id: int, _: UserModel = Depends(get_current_user), settings: BaseAppSettings = Depends(get_settings), db: AsyncSession = Depends(get_db)):
-    stripe.api_key = settings.STRIPE_SECRET_KEY
-    
-    payment = await db.get(PaymentModel, payment_id)
-    if not payment:
-        raise HTTPException(404, "Payment not found")
 
-    if payment.status in [PaymentStatusEnum.SUCCESSFUL, PaymentStatusEnum.REFUNDED]:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT,
-            detail="Only pending payments can be canceled.",
-        )
-    if payment.external_payment_id:
-        stripe.PaymentIntent.cancel(payment.external_payment_id)
 
-    payment.status = PaymentStatusEnum.CANCELED
-    await db.commit()
-    return {"message": "Payment canceled successfully"}
-
-    
 @router.post("/webhook")
 async def stripe_webhook(
-    request: Request, 
+    request: Request,
     settings: BaseAppSettings = Depends(get_settings),
-    # _: UserModel = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
+    email_sender: EmailSenderInterface = Depends(get_accounts_email_notificator),
+    db: AsyncSession = Depends(get_db),
 ):
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
@@ -142,8 +120,7 @@ async def stripe_webhook(
 
         # Idempotency check
         existing = await db.execute(
-            select(PaymentModel)
-            .where(PaymentModel.external_payment_id == intent.id)
+            select(PaymentModel).where(PaymentModel.external_payment_id == intent.id)
         )
         if existing.scalar_one_or_none():
             return {"status": "already_processed"}
@@ -167,18 +144,34 @@ async def stripe_webhook(
         order.status = OrderStatusEnum.PAID
 
         db.add(payment)
-        
+        await db.flush()
+
         await delete_paid_items_for_user(
             db=db,
             user_id=user_id,
         )
 
-        await db.commit()  
+        await db.commit()
+
+        header = "Payment succeeded"
+        message = f"Your payment for the order {order_id} is successful.<br />Payment id: {intent['id']}<br />Amount: {intent['amount'] / 100}"
+        user = await db.get(UserModel, user_id)
 
     elif event["type"] == "payment_intent.payment_failed":
-        # optional logging
-        pass
+        intent = event["data"]["object"]
+        order_id = int(intent["metadata"]["order_id"])
+        user_id = int(intent["metadata"]["user_id"])
+        amount = intent["amount"] / 100
 
+        header = "Payment failed"
+        message = f"Your payment of ${amount} for order {order_id} failed.<br />Reason: {intent['last_payment_error']['message']}"
+
+        user = await db.get(UserModel, user_id)
+
+    else:
+        return {"status": "ignored"}
+
+    await email_sender.send_payment_email(user.email, header, message)
     return {"status": "ok"}
 
 
@@ -198,7 +191,6 @@ async def get_user_payments(
     return result.scalars().all()
 
 
-
 @router.get(
     "/{payment_id}",
     response_model=PaymentResponseSchema,
@@ -207,7 +199,7 @@ async def get_user_payments(
 )
 async def get_payment_detail(
     payment_id: int,
-    _: UserModel = Depends(get_current_user), 
+    _: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
@@ -220,56 +212,4 @@ async def get_payment_detail(
     if not payment:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Payment not found")
 
-  
     return PaymentResponseSchema.model_validate(payment)
-
-
-# @router.delete(
-#     "/delete-paid",
-#     summary="Delete paid items from Cart",
-#     status_code=status.HTTP_204_NO_CONTENT,
-# )
-# async def delete_paid_items_from_cart(
-#     db: AsyncSession = Depends(get_db),
-#     user: UserModel = Depends(get_current_user),
-# ) -> None:
-#     # 1. Get user's cart
-#     cart_result = await db.execute(
-#         select(CartModel).where(CartModel.user_id == user.id)
-#     )
-#     cart = cart_result.scalar_one_or_none()
-
-#     if not cart:
-#         raise HTTPException(
-#             status_code=status.HTTP_404_NOT_FOUND,
-#             detail="Cart not found",
-#         )
-
-#     # 2. Get all SUCCESSFUL payments for this user
-#     payment_items_subquery = (
-#         select(OrderItemModel.movie_id)
-#         .join(PaymentItemModel, PaymentItemModel.order_item_id == OrderItemModel.id)
-#         .join(PaymentModel, PaymentModel.id == PaymentItemModel.payment_id)
-#         .where(
-#             PaymentModel.status == PaymentStatusEnum.SUCCESSFUL,
-#             PaymentModel.user_id == user.id,
-#         )
-#     )
-
-#     # 3. Delete ONLY cart items that were paid
-#     result = await db.execute(
-#         delete(CartItemModel)
-#         .where(
-#             CartItemModel.cart_id == cart.id,
-#             CartItemModel.movie_id.in_(payment_items_subquery),
-#         )
-#     )
-
-#     if result.rowcount == 0:
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST,
-#             detail="No paid items found in cart",
-#         )
-
-#     await db.commit()
-
