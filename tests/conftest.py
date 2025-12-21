@@ -1,11 +1,12 @@
-
 import os
 import asyncio
 from fastapi.testclient import TestClient
+
 os.environ["ENVIRONMENT"] = "testing"
 from src.tasks.redis_blacklist import get_redis
 
 from src.database.session_sqlite import AsyncSQLiteSessionLocal
+
 AsyncSessionLocal = AsyncSQLiteSessionLocal
 
 import pytest_asyncio, pytest
@@ -31,10 +32,9 @@ from tests.doubles.fakes.storage import FakeS3Storage
 from tests.doubles.stubs.emails import StubEmailSender
 
 
-
 import asyncio
 import pytest
-    
+
 from src.database.session_sqlite import sqlite_engine
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
@@ -63,26 +63,32 @@ from .utils import FakeRedis
 #     )
 
 #     session = AsyncSessionLocal()
-    
+
 #     # Start transaction
 #     await session.begin()
-    
+
 #     try:
 #         yield session
 #     finally:
 #         # Rollback and close — this fixes "closed transaction" error
 #         await session.rollback()
 #         await session.close()
-    
+
+
 def pytest_configure(config):
     config.addinivalue_line("markers", "e2e: End-to-end tests")
     config.addinivalue_line("markers", "order: Specify the order of test execution")
     config.addinivalue_line("markers", "unit: Unit tests")
 
 
-from src.database.populate_db import seed_movies, seed_user_groups, seed_users
+from src.database.populate_db import (
+    seed_movies,
+    seed_user_groups,
+    seed_users,
+    seed_orders,
+)
 
-             
+
 @pytest_asyncio.fixture(scope="function", autouse=True)
 async def reset_db(request):
     """
@@ -114,13 +120,12 @@ async def reset_db_once_for_e2e(request):
 async def fixture_seed_database(request, reset_db, db_session):
     if "no_seed" in request.keywords:
         return
-    
+
     await seed_user_groups(db_session)
     await seed_movies(db_session, num_movies=50)
     await seed_users(db_session)
+    await seed_orders(db_session)
     await db_session.commit()
-
-    
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -177,17 +182,18 @@ async def s3_client(settings):
 #     # loop.close = original_close
 #     loop = asyncio.get_event_loop()
 #     original_close = loop.close
-    
+
 #     def fake_close():
 #         pass  # do nothing
-    
+
 #     loop.close = fake_close
-    
+
 #     yield
-    
+
 #     # Restore original close (optional)
 #     loop.close = original_close
-    
+
+
 @pytest_asyncio.fixture(scope="function")
 async def client(email_sender_stub, s3_storage_fake):
     """
@@ -205,9 +211,9 @@ async def client(email_sender_stub, s3_storage_fake):
         yield async_client
     # with TestClient(app) as client:
     #     yield client
-        
 
     app.dependency_overrides.clear()
+
 
 # from fastapi.testclient import TestClient
 # from src.main import app
@@ -221,7 +227,8 @@ async def client(email_sender_stub, s3_storage_fake):
 #         yield client
 
 #     app.dependency_overrides.clear()
-    
+
+
 @pytest_asyncio.fixture(scope="session")
 async def e2e_client():
     """
@@ -245,7 +252,7 @@ async def db_session():
     """
     async with get_db_contextmanager() as session:
         yield session
-        
+
         await session.rollback()
 
 
@@ -318,26 +325,27 @@ async def jwt_manager() -> JWTAuthManagerInterface:
 #     yield db_session
 
 
-
 # @pytest_asyncio.fixture
 # async def fake_redis():
 #     yield FakeRedis()
 
 
-
-
 @pytest.fixture(
     # scope="session"
-    )
+)
 def fake_redis():
     return FakeRedis()
+
 
 @pytest_asyncio.fixture(autouse=True)
 async def override_redis(fake_redis):
     app.dependency_overrides[get_redis] = lambda: fake_redis
+
+
 @pytest_asyncio.fixture(scope="session")
 def event_loop():
     import asyncio
+
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()

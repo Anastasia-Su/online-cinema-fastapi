@@ -1,5 +1,8 @@
-
 import os
+from decimal import Decimal
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 
 ENV = os.getenv("ENVIRONMENT", "testing")
 
@@ -19,6 +22,10 @@ from src.database import (
     CertificationModel,
     UserGroupModel,
     UserGroupEnum,
+    UserModel,
+    OrderStatusEnum,
+    OrderModel,
+    OrderItemModel,
 )
 
 
@@ -28,7 +35,10 @@ if ENV == "testing":
     AsyncSessionLocal = AsyncSQLiteSessionLocal
     get_db = get_sqlite_db
 else:
-    from src.database.session_db import AsyncSessionLocal as AsyncPostgresSessionLocal, get_db as get_postgres_db
+    from src.database.session_db import (
+        AsyncSessionLocal as AsyncPostgresSessionLocal,
+        get_db as get_postgres_db,
+    )
 
     AsyncSessionLocal = AsyncPostgresSessionLocal
     get_db = get_postgres_db
@@ -40,11 +50,9 @@ NUM_MOVIES = 10_000  # number of movies to add
 
 
 async def seed_movies(session: AsyncSession, num_movies=NUM_MOVIES):
-    
+
     # ✅ Keep existing data — just reuse it
-    certifications = (
-        (await session.execute(select(CertificationModel))).scalars().all()
-    )
+    certifications = (await session.execute(select(CertificationModel))).scalars().all()
     genres = (await session.execute(select(GenreModel))).scalars().all()
     stars = (await session.execute(select(StarModel))).scalars().all()
     directors = (await session.execute(select(DirectorModel))).scalars().all()
@@ -52,8 +60,7 @@ async def seed_movies(session: AsyncSession, num_movies=NUM_MOVIES):
     # ✅ If reference tables are empty, seed them
     if not certifications:
         certifications = [
-            CertificationModel(name=name)
-            for name in ["G", "PG", "PG-13", "R", "NC-17"]
+            CertificationModel(name=name) for name in ["G", "PG", "PG-13", "R", "NC-17"]
         ]
         session.add_all(certifications)
         await session.flush()
@@ -77,10 +84,6 @@ async def seed_movies(session: AsyncSession, num_movies=NUM_MOVIES):
         session.add_all(genres)
         await session.flush()
 
-    # if not stars:
-    #     stars = [StarModel(name=fake.name()) for _ in range(20)]
-    #     session.add_all(stars)
-    #     await session.flush()
     existing_star_names = {s.name for s in stars}
     new_stars = []
     while len(new_stars) < 20:
@@ -92,10 +95,6 @@ async def seed_movies(session: AsyncSession, num_movies=NUM_MOVIES):
     await session.flush()
     stars.extend(new_stars)
 
-    # if not directors:
-    #     directors = [DirectorModel(name=fake.name()) for _ in range(10)]
-    #     session.add_all(directors)
-    #     await session.flush()
     existing_director_names = {d.name for d in directors}
     new_directors = []
     while len(new_directors) < 10:
@@ -134,7 +133,7 @@ async def seed_movies(session: AsyncSession, num_movies=NUM_MOVIES):
         movies.append(movie)
 
     session.add_all(movies)
-    
+
     print(f"✅ Added {len(movies)} new movies successfully!")
 
 
@@ -146,7 +145,7 @@ async def seed_user_groups(session: AsyncSession) -> None:
     If no records are found, it inserts all groups defined in the UserGroupEnum.
     After insertion, the changes are flushed to the current transaction.
     """
-    
+
     count_stmt = select(func.count(UserGroupModel.id))
     result = await session.execute(count_stmt)
     existing_groups = result.scalar()
@@ -155,53 +154,16 @@ async def seed_user_groups(session: AsyncSession) -> None:
         groups = [{"name": group.value} for group in UserGroupEnum]
         await session.execute(insert(UserGroupModel).values(groups))
         await session.flush()
-        
 
         print("User groups seeded successfully.")
 
-
-# if __name__ == "__main__":
-#     # asyncio.run(seed_movies())
-#     asyncio.run(seed_user_groups())
-# async def seed_users():
-#     from sqlalchemy import select
-#     from src.database.models.accounts import UserModel, UserGroupModel
-
-#     async with get_db_contextmanager() as db:
-#         groups = (await db.execute(select(UserGroupModel))).scalars().all()
-#         group_map = {g.name.value: g.id for g in groups}
-
-#         users = [
-#             UserModel.create(
-#                 email="admin@test.com",
-#                 raw_password="Password1!",
-#                 group_id=group_map["admin"]
-#             ),
-#             UserModel.create(
-#                 email="mod@test.com",
-#                 raw_password="Password1!",
-#                 group_id=group_map["moderator"]
-#             ),
-#             UserModel.create(
-#                 email="user@test.com",
-#                 raw_password="Password1!",
-#                 group_id=group_map["user"]
-#             ),
-#         ]
-
-#         # All users must be active for testing
-#         for u in users:
-#             u.is_active = True
-
-#         db.add_all(users)
-        # await db.commit()
 
 async def seed_users(session: AsyncSession):
     from src.database.models.accounts import UserModel, UserGroupModel
     from sqlalchemy import select
 
     # Fetch groups using the SAME session that just created them
-    
+
     groups = (await session.execute(select(UserGroupModel))).scalars().all()
     group_map = {g.name.value: g.id for g in groups}
 
@@ -213,72 +175,93 @@ async def seed_users(session: AsyncSession):
         UserModel.create(
             email="admin@test.com",
             raw_password="Password1!",
-            group_id=group_map["admin"]
+            group_id=group_map["admin"],
         ),
         UserModel.create(
             email="mod@test.com",
             raw_password="Password2!",
-            group_id=group_map["moderator"]
+            group_id=group_map["moderator"],
         ),
         UserModel.create(
-            email="user@test.com",
-            raw_password="Password3!",
-            group_id=group_map["user"]
+            email="user@test.com", raw_password="Password3!", group_id=group_map["user"]
         ),
     ]
 
     session.add_all(users)
     await session.flush()
 
-# async def seed_users():
-#     from src.database.models.accounts import UserModel, UserGroupModel
-#     from sqlalchemy import select
 
-#     # Fetch groups using the SAME session that just created them
-#     async with AsyncSessionLocal() as session:
-#         groups = (await session.execute(select(UserGroupModel))).scalars().all()
-#         group_map = {g.name.value: g.id for g in groups}
+async def seed_orders(session: AsyncSession):
+    """
+    Minimal orders seeding for payment tests.
+    """
 
-#         # Make sure we have all groups (they were just seeded)
-#         if len(group_map) < 3:
-#             raise RuntimeError("User groups not seeded properly!")
+    user = (
+        await session.execute(
+            select(UserModel).where(UserModel.email == "user@test.com")
+        )
+    ).scalar_one()
 
-#         users = [
-#             UserModel.create(
-#                 email="admin@test.com",
-#                 raw_password="Password1!",
-#                 group_id=group_map["admin"]
-#             ),
-#             UserModel.create(
-#                 email="mod@test.com",
-#                 raw_password="Password2!",
-#                 group_id=group_map["moderator"]
-#             ),
-#             UserModel.create(
-#                 email="user@test.com",
-#                 raw_password="Password3!",
-#                 group_id=group_map["user"]
-#             ),
-#         ]
+    movies = (await session.execute(select(MovieModel).limit(3))).scalars().all()
 
-#         session.add_all(users)
-#         session.commit()
-    
-async def seed_certifications(session: AsyncSession):
-    from src.database import CertificationModel   # adjust path
-    from sqlalchemy import insert, select
+    if len(movies) < 2:
+        raise RuntimeError("Need at least 2 movies for order seeding")
 
-    count = (await session.execute(select(func.count()).select_from(CertificationModel))).scalar_one()
-    if count == 0:
-        await session.execute(insert(CertificationModel).values([
-            {"id": 1, "name": "G"},
-            {"id": 2, "name": "PG"},
-            {"id": 3, "name": "PG-13"},
-            {"id": 4, "name": "R"},
-        ]))
+    # --------------------
+    # PENDING ORDER
+    # --------------------
+    pending_order = OrderModel(
+        user_id=user.id,
+        status=OrderStatusEnum.PENDING,
+        total_amount=Decimal("0.00"),
+    )
+    session.add(pending_order)
+    await session.flush()
+
+    total = Decimal("0.00")
+    for movie in movies[:2]:
+        price = Decimal(str(movie.price))
+        total += price
+
+        session.add(
+            OrderItemModel(
+                order_id=pending_order.id,
+                movie_id=movie.id,
+                price_at_order=price,
+            )
+        )
+
+    pending_order.total_amount = total
+
+    # --------------------
+    # PAID ORDER
+    # --------------------
+    paid_order = OrderModel(
+        user_id=user.id,
+        status=OrderStatusEnum.PAID,
+        total_amount=Decimal("0.00"),
+    )
+    session.add(paid_order)
+    await session.flush()
+
+    movie = movies[2]
+    price = Decimal(str(movie.price))
+
+    session.add(
+        OrderItemModel(
+            order_id=paid_order.id,
+            movie_id=movie.id,
+            price_at_order=price,
+        )
+    )
+
+    paid_order.total_amount = price
+
+    await session.flush()
+
+    print("✅ Seeded 1 PENDING and 1 PAID order")
 
 
-def make_token(user, jwt_manager):
-    access = jwt_manager.create_access_token({"user_id": user.id})
-    return {"Authorization": f"Bearer {access}"}
-
+# def make_token(user, jwt_manager):
+#     access = jwt_manager.create_access_token({"user_id": user.id})
+#     return {"Authorization": f"Bearer {access}"}

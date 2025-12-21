@@ -120,7 +120,7 @@ async def stripe_webhook(
 
         # Idempotency check
         existing = await db.execute(
-            select(PaymentModel).where(PaymentModel.external_payment_id == intent.id)
+            select(PaymentModel).where(PaymentModel.external_payment_id == intent["id"])
         )
         if existing.scalar_one_or_none():
             return {"status": "already_processed"}
@@ -130,7 +130,7 @@ async def stripe_webhook(
             order_id=order.id,
             amount=order.total_amount,
             status=PaymentStatusEnum.SUCCESSFUL,
-            external_payment_id=intent.id,
+            external_payment_id=intent["id"],
         )
 
         payment.items = [
