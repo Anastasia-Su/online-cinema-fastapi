@@ -52,3 +52,6 @@ class StubEmailSender(EmailSenderInterface):
         self, email: str, parent_preview: str, comment_link: str
     ) -> None:
         return None
+
+    async def send_payment_email(self, email: str, header: str, message: str) -> None:
+        return None

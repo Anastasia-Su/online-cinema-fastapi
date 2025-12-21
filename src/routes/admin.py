@@ -248,7 +248,7 @@ async def admin_list_payments(
     return result.scalars().all()
 
 
-@router.post("payments/{payment_id}/refund", status_code=status.HTTP_200_OK)
+@router.post("/payments/{payment_id}/refund", status_code=status.HTTP_200_OK)
 async def refund_payment(
     payment_id: int,
     settings: BaseAppSettings = Depends(get_settings),
@@ -287,8 +287,24 @@ async def refund_payment(
         )
 
     payment.status = PaymentStatusEnum.REFUNDED
+    
+    
     db.add(payment)
+    await db.flush()
+    
+    
+    order = await db.execute(
+        select(OrderModel)
+        .options(selectinload(OrderModel.items))
+        .where(OrderModel.id == payment.order_id)
+    )
+
+    order = order.scalar_one()
+    order.status = OrderStatusEnum.REFUNDED
+    
+    db.add(order)
     await db.commit()
+    
 
     return {
         "payment_id": payment.id,

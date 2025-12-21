@@ -16,6 +16,10 @@ from src.database import (
     GenreModel,
     CartModel,
     CartItemModel,
+    OrderItemModel,
+    PaymentModel,
+    PaymentItemModel,
+    PaymentStatusEnum,
     get_db,
     # get_current_user,
 )
@@ -249,14 +253,27 @@ async def delete_movie(
         .limit(1)
     )
 
-    exists = (await db.execute(cart_stmt)).first()
+    cart_exists = (await db.execute(cart_stmt)).first()
 
-    if exists:
+    if cart_exists:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Can't delete. This movie is in user's cart.",
         )
             
+    order_item_stmt = (
+        select(OrderItemModel.id)
+        .where(OrderItemModel.movie_id == movie_id)
+        .limit(1)
+    )
+
+    used_in_orders = (await db.execute(order_item_stmt)).first()
+
+    if used_in_orders:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Can't delete. This movie has been purchased or ordered by users.",
+        )
     
     await db.delete(movie)
     await db.commit()

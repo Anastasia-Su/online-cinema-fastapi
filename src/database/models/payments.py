@@ -15,7 +15,6 @@ from src.database import Base
 
 class PaymentStatusEnum(str, PyEnum):
     SUCCESSFUL = "successful"
-    CANCELED = "canceled"
     REFUNDED = "refunded"
 
 

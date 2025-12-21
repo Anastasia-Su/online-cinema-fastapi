@@ -4,8 +4,8 @@ import pytest
 from sqlalchemy import select, func
 from sqlalchemy.orm import joinedload
 
-from src.database import MovieModel
-from src.database import UserModel
+from src.database import MovieModel, UserModel, OrderItemModel, OrderModel, OrderStatusEnum
+
 from ..utils import make_token, get_headers
 
 
@@ -539,6 +539,56 @@ async def test_delete_movie_not_found(client, db_session, jwt_manager):
     assert (
         response.status_code == 404
     ), f"Expected status code 404, but got {response.status_code}"
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_delete_movie_already_ordered(client, db_session, jwt_manager):
+    """
+    Test the `/movies/{movie_id}/` endpoint when the movie
+    has already been ordered by at least one user.
+    Expect 409 CONFLICT.
+    """
+
+    movie_stmt = select(MovieModel).limit(1)
+    movie_result = await db_session.execute(movie_stmt)
+    movie = movie_result.scalars().first()
+    assert movie is not None, "No movies found in the database."
+
+    user_stmt = select(UserModel).limit(1)
+    user_result = await db_session.execute(user_stmt)
+    user = user_result.scalars().first()
+    assert user is not None, "No users found in the database."
+
+    order = OrderModel(
+        user_id=user.id,
+        status=OrderStatusEnum.PAID,
+        total_amount=movie.price,
+    )
+    db_session.add(order)
+    await db_session.flush()
+
+    order_item = OrderItemModel(
+        order_id=order.id,
+        movie_id=movie.id,
+        price_at_order=movie.price,
+    )
+    db_session.add(order_item)
+    await db_session.commit()
+
+    headers = await get_headers(db_session, jwt_manager, 2) 
+
+    response = await client.delete(
+        f"/moderator/movies/{movie.id}/",
+        headers=headers,
+    )
+
+    assert response.status_code == 409
+
+    stmt_check = select(MovieModel).where(MovieModel.id == movie.id)
+    result_check = await db_session.execute(stmt_check)
+    existing_movie = result_check.scalars().first()
+
+    assert existing_movie is not None, "Movie was deleted despite existing orders."
 
 
 @pytest.mark.asyncio(loop_scope="session")

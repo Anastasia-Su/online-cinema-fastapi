@@ -18,6 +18,7 @@ from src.database import Base
 class OrderStatusEnum(str, Enum):
     PENDING = "pending"
     PAID = "paid"
+    REFUNDED = "refunded"
     CANCELED = "canceled"
 
 

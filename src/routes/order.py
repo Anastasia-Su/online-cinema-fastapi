@@ -12,6 +12,8 @@ from src.database import (
     OrderItemModel,
     OrderModel,
     OrderStatusEnum,
+    PaymentStatusEnum,
+    PaymentModel
 )
 from src.config.get_current_user import get_current_user
 from src.schemas import (
@@ -165,3 +167,49 @@ async def cancel_order(
     await db.commit()
 
     return {"message": "Order canceled successfully."}
+
+
+@router.get("/orders/{order_id}/payment-status")
+async def get_payment_status(
+    order_id: int,
+    current_user: UserModel = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    order = await db.execute(
+        select(OrderModel)
+        .where(
+            OrderModel.id == order_id,
+            OrderModel.user_id == current_user.id,
+        )
+    )
+    order = order.scalar_one_or_none()
+
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    payment = await db.execute(
+        select(PaymentModel)
+        .where(PaymentModel.order_id == order_id)
+        .order_by(PaymentModel.created_at.desc())
+        .limit(1)
+    )
+    payment = payment.scalar_one_or_none()
+
+    if not payment:
+        return {
+            "status": "processing",
+            "message": "Payment is being processed",
+        }
+
+    if payment.status == PaymentStatusEnum.SUCCESSFUL:
+        return {
+            "status": "success",
+            "message": "Payment successful",
+        }
+        
+    if payment.status == PaymentStatusEnum.REFUNDED:
+        return {
+            "status": "refunded",
+            "message": "Payment refunded",
+        }
+
