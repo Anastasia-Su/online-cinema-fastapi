@@ -20,13 +20,57 @@ router = APIRouter(prefix="/movies", tags=["movies"])
     "/{movie_id}/rating",
     response_model=RatingSchema,
     status_code=status.HTTP_201_CREATED,
+    summary="Rate a movie",
+    description=(
+        "Creates or updates the current user's rating for the specified movie. "
+        "If the user has already rated the movie, the existing rating is updated. "
+        "Movie rating statistics are recalculated automatically."
+    ),
+    responses={
+        201: {
+            "description": "Rating created or updated successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "user_id": 5,
+                        "movie_id": 12,
+                        "rating": 8,
+                        "created_at": "2025-01-01T12:00:00Z",
+                        "updated_at": "2025-01-02T09:30:00Z",
+                        "username": "user@example.com",
+                    }
+                }
+            },
+        },
+        401: {
+            "description": "Unauthorized",
+            "content": {
+                "application/json": {"example": {"detail": "Not authenticated"}}
+            },
+        },
+        404: {
+            "description": "Movie not found",
+            "content": {"application/json": {"example": {"detail": "Movie not found"}}},
+        },
+    },
 )
 async def rate_movie(
     movie_id: int,
     payload: RatingCreateSchema,
     current_user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-):
+) -> RatingSchema:
+    """
+    Create or update the authenticated user's rating for a movie.
+
+    Behavior:
+    - Inserts a new rating if none exists.
+    - Updates the existing rating if already present.
+    - Recalculates movie rating statistics after the change.
+
+    Returns:
+        RatingSchema: The user's rating for the movie.
+    """
 
     movie = await db.get(MovieModel, movie_id)
     if not movie:
@@ -84,12 +128,63 @@ async def rate_movie(
     )
 
 
-@router.get("/{movie_id}/rating", response_model=RatingSchema)
+@router.get(
+    "/{movie_id}/rating",
+    response_model=RatingSchema,
+    status_code=status.HTTP_200_OK,
+    summary="Get my movie rating",
+    description=(
+        "Returns the authenticated user's rating for the specified movie. "
+        "If the user has not rated the movie, an error is returned."
+    ),
+    responses={
+        200: {
+            "description": "Rating retrieved successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "user_id": 5,
+                        "movie_id": 12,
+                        "rating": 9,
+                        "created_at": "2025-01-01T12:00:00Z",
+                        "updated_at": None,
+                        "username": "user@example.com",
+                    }
+                }
+            },
+        },
+        401: {
+            "description": "Unauthorized",
+            "content": {
+                "application/json": {"example": {"detail": "Not authenticated"}}
+            },
+        },
+        404: {
+            "description": "Rating not found",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "You haven't rated this movie yet"}
+                }
+            },
+        },
+    },
+)
 async def get_my_rating(
     movie_id: int,
     current_user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-):
+) -> RatingSchema:
+    """
+    Retrieve the authenticated user's rating for a movie.
+
+    Behavior:
+    - Returns the rating if it exists.
+    - Raises 404 if the user has not rated the movie.
+
+    Returns:
+        RatingSchema: The user's movie rating.
+    """
+
     result = await db.execute(
         select(MovieRatingModel).where(
             MovieRatingModel.user_id == current_user.id,
@@ -114,12 +209,57 @@ async def get_my_rating(
     )
 
 
-@router.delete("/{movie_id}/rating", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{movie_id}/rating",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete my movie rating",
+    description=(
+        "Deletes the authenticated user's rating for the specified movie. "
+        "Movie rating statistics are recalculated after deletion."
+    ),
+    responses={
+        204: {"description": "Rating deleted successfully"},
+        401: {
+            "description": "Unauthorized",
+            "content": {
+                "application/json": {"example": {"detail": "Not authenticated"}}
+            },
+        },
+        404: {
+            "description": "Rating not found",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "no_rating": {
+                            "summary": "No rating exists",
+                            "value": {"detail": "You haven't rated this movie"},
+                        },
+                        "rating_missing": {
+                            "summary": "Rating not found during deletion",
+                            "value": {"detail": "Rating not found"},
+                        },
+                    }
+                }
+            },
+        },
+    },
+)
 async def delete_rating(
     movie_id: int,
     current_user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-):
+) -> Response:
+    """
+    Delete the authenticated user's rating for a movie.
+
+    Behavior:
+    - Removes the rating if it exists.
+    - Recalculates movie rating statistics.
+    - Returns 204 with no response body.
+
+    Returns:
+        Response: Empty 204 NO CONTENT response.
+    """
 
     current_rating_result = await db.execute(
         select(MovieRatingModel.rating).where(

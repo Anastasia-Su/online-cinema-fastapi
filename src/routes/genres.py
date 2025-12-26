@@ -19,8 +19,46 @@ router = APIRouter(prefix="/genres", tags=["genres"])
     "/",
     response_model=GenreListResponseSchema,
     summary="List all genres with their movie counts",
+    description=(
+        "Retrieve a list of all movie genres along with the total number of movies "
+        "associated with each genre."
+    ),
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {
+            "description": "Genres retrieved successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "genres": [
+                            {"id": 1, "name": "Action", "movie_count": 42},
+                            {"id": 2, "name": "Drama", "movie_count": 37},
+                        ]
+                    }
+                }
+            },
+        },
+        500: {
+            "description": "Internal Server Error - Failed to retrieve genres",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "An unexpected error occurred."}
+                }
+            },
+        },
+    },
 )
 async def get_genre_list(db: AsyncSession = Depends(get_db)) -> GenreListResponseSchema:
+    """
+    Retrieve all genres with aggregated movie counts.
+
+    Args:
+        db (AsyncSession): Asynchronous database session.
+
+    Returns:
+        GenreListResponseSchema: List of genres with movie counts.
+    """
+
     stmt = (
         select(GenreModel, func.count(MovieGenreModel.c.movie_id).label("movie_count"))
         .outerjoin(MovieGenreModel, GenreModel.id == MovieGenreModel.c.genre_id)
@@ -47,6 +85,84 @@ async def get_genre_list(db: AsyncSession = Depends(get_db)) -> GenreListRespons
     "/{genre_id}/movies/",
     response_model=MovieListResponseSchema,
     summary="List movies for a specific genre with pagination and sorting",
+    description=(
+        "Retrieve a paginated and sortable list of movies that belong to a specific genre. "
+        "Supports sorting by price, year, IMDb rating, votes, and duration."
+    ),
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {
+            "description": "Movies retrieved successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "movies": [
+                            {
+                                "id": 101,
+                                "title": "Inception",
+                                "year": 2010,
+                                "imdb": 8.8,
+                                "votes": 2200000,
+                                "price": "9.99",
+                                "time": 148,
+                            }
+                        ],
+                        "prev_page": None,
+                        "next_page": "/genres/1/movies/?page=2&per_page=10&sort_by=imdb&sort_order=desc",
+                        "total_pages": 5,
+                        "total_items": 42,
+                    }
+                }
+            },
+        },
+        404: {
+            "description": "Genre or movies not found",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "genre_not_found": {
+                            "summary": "Genre not found",
+                            "value": {"detail": "Genre not found"},
+                        },
+                        "no_movies": {
+                            "summary": "No movies for genre",
+                            "value": {"detail": "No movies found for this genre."},
+                        },
+                        "page_not_found": {
+                            "summary": "Invalid page",
+                            "value": {
+                                "detail": "Page 3 not found. Total pages available: 2."
+                            },
+                        },
+                    }
+                }
+            },
+        },
+        422: {
+            "description": "Validation Error - Invalid query parameters",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": [
+                            {
+                                "loc": ["query", "per_page"],
+                                "msg": "ensure this value is less than or equal to 20",
+                                "type": "value_error.number.not_le",
+                            }
+                        ]
+                    }
+                }
+            },
+        },
+        500: {
+            "description": "Internal Server Error - Failed to retrieve movies",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "An unexpected error occurred."}
+                }
+            },
+        },
+    },
 )
 async def get_genre_movies(
     genre_id: int,
@@ -60,6 +176,24 @@ async def get_genre_movies(
     ),
     db: AsyncSession = Depends(get_db),
 ) -> MovieListResponseSchema:
+    """
+    Retrieve movies belonging to a specific genre.
+
+    Applies pagination and sorting. Validates genre existence
+    and page boundaries before returning results.
+
+    Args:
+        genre_id (int): Genre identifier.
+        page (int): Page number.
+        per_page (int): Items per page.
+        sort_by (SortBy): Sorting field.
+        sort_order (SortOrder): Sorting direction.
+        db (AsyncSession): Asynchronous database session.
+
+    Returns:
+        MovieListResponseSchema: Paginated list of movies.
+    """
+
     # Verify genre exists
     genre_exists = await db.execute(select(GenreModel).where(GenreModel.id == genre_id))
     if not genre_exists.scalar_one_or_none():

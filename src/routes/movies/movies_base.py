@@ -33,7 +33,88 @@ router = APIRouter(prefix="/movies", tags=["movies"])
 @router.get(
     "/",
     response_model=MovieListResponseSchema,
-    summary="Browse the movie catalog with pagination, filtering, and sorting",
+    status_code=status.HTTP_200_OK,
+    summary="Browse movie catalog",
+    description=(
+        "Returns a paginated list of movies with support for searching, filtering, "
+        "and sorting. Multiple filters can be combined. "
+        "Raises an error if no movies match the given criteria or if the requested "
+        "page is out of range."
+    ),
+    responses={
+        200: {
+            "description": "Movies retrieved successfully",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "with_results": {
+                            "summary": "Movies list",
+                            "value": {
+                                "movies": [
+                                    {
+                                        "id": 1,
+                                        "name": "Inception",
+                                        "year": 2010,
+                                        "imdb": 8.8,
+                                    }
+                                ],
+                                "prev_page": None,
+                                "next_page": "/movies/?page=2&per_page=10",
+                                "total_pages": 3,
+                                "total_items": 21,
+                            },
+                        }
+                    }
+                }
+            },
+        },
+        400: {
+            "description": "Invalid filter values",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "invalid_year_range": {
+                            "summary": "Invalid year range",
+                            "value": {
+                                "detail": "year_min must be less than or equal to year_max"
+                            },
+                        },
+                        "invalid_imdb_range": {
+                            "summary": "Invalid IMDb range",
+                            "value": {
+                                "detail": "imdb_min must be less than or equal to imdb_max"
+                            },
+                        },
+                        "invalid_price_range": {
+                            "summary": "Invalid price range",
+                            "value": {
+                                "detail": "price_min must be less than or equal to price_max"
+                            },
+                        },
+                    }
+                }
+            },
+        },
+        404: {
+            "description": "No movies found or page out of range",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "no_movies": {
+                            "summary": "No movies match filters",
+                            "value": {"detail": "No movies found."},
+                        },
+                        "page_not_found": {
+                            "summary": "Invalid page",
+                            "value": {
+                                "detail": "Page 5 not found. Total pages available: 3."
+                            },
+                        },
+                    }
+                }
+            },
+        },
+    },
 )
 async def get_movie_list(
     page: int = Query(1, ge=1),
@@ -62,10 +143,19 @@ async def get_movie_list(
     price_min: Optional[float] = Query(None, ge=0.0, description="Minimum price"),
     price_max: Optional[float] = Query(None, ge=0.0, description="Maximum price"),
     db: AsyncSession = Depends(get_db),
-):
-    
-    import os
-    print(os.environ.get("ENVIRONMENT"))
+) -> MovieListResponseSchema:
+    """
+    Browse the movie catalog with pagination, filtering, and sorting.
+
+    Behavior:
+    - Supports full-text search across title, description, actors, and directors.
+    - Supports numeric filtering by year, IMDb rating, and price.
+    - Supports sorting by predefined fields.
+    - Raises 404 if no movies match filters or if page exceeds total pages.
+
+    Returns:
+        MovieListResponseSchema: Paginated list of movies.
+    """
 
     # Validate filter inputs
     if year_min is not None and year_max is not None and year_min > year_max:
@@ -84,10 +174,8 @@ async def get_movie_list(
             detail="price_min must be less than or equal to price_max",
         )
 
-  
     stmt = select(
         MovieModel,
-        
     ).distinct()
 
     search_conditions = []
@@ -227,14 +315,56 @@ async def get_movie_list(
 @router.get(
     "/{movie_id}/",
     response_model=MovieDetailSchema,
+    status_code=status.HTTP_200_OK,
     summary="Get movie details by ID",
+    description=(
+        "Returns full details for a specific movie, including genres, "
+        "directors, stars, certification, and user interaction metadata."
+    ),
+    responses={
+        200: {
+            "description": "Movie retrieved successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "id": 1,
+                        "name": "Inception",
+                        "year": 2010,
+                        "imdb": 8.8,
+                        "genres": [{"id": 1, "name": "Sci-Fi"}],
+                        "directors": [{"id": 1, "name": "Christopher Nolan"}],
+                        "stars": [{"id": 1, "name": "Leonardo DiCaprio"}],
+                    }
+                }
+            },
+        },
+        404: {
+            "description": "Movie not found",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Movie with the given ID was not found."}
+                }
+            },
+        },
+    },
 )
 async def get_movie_by_id(
     movie_id: int,
     db: AsyncSession = Depends(get_db),
 ) -> MovieDetailSchema:
     """
-    Retrieve detailed information about a specific movie by its ID.
+    Retrieve detailed information about a movie by its ID.
+
+    Behavior:
+    - Loads related entities (genres, directors, stars, certification).
+    - Raises 404 if the movie does not exist.
+
+    Args:
+        movie_id (int): Movie identifier.
+        db (AsyncSession): Database session.
+
+    Returns:
+        MovieDetailSchema: Full movie details.
     """
     stmt = (
         select(

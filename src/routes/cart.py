@@ -1,8 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Body, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy import select, delete
-from src.database import get_db, CartModel, CartItemModel, UserModel, MovieModel
+from src.database import (
+    get_db,
+    CartModel,
+    CartItemModel,
+    UserModel,
+    MovieModel,
+    PaymentModel,
+    PaymentItemModel,
+    PaymentStatusEnum,
+    OrderItemModel,
+    OrderModel,
+    OrderStatusEnum,
+)
 from src.config.get_current_user import get_current_user
 from src.schemas import CartSchema, CartItemSchema, MovieCartSchema
 
@@ -16,9 +28,9 @@ async def get_or_create_cart(db: AsyncSession, user_id: int) -> CartModel:
     result = await db.execute(
         select(CartModel)
         .options(
-        selectinload(CartModel.items)
+            selectinload(CartModel.items)
             .selectinload(CartItemModel.movie)
-            .selectinload(MovieModel.genres) 
+            .selectinload(MovieModel.genres)
         )
         .where(CartModel.user_id == user_id)
     )
@@ -29,7 +41,7 @@ async def get_or_create_cart(db: AsyncSession, user_id: int) -> CartModel:
         db.add(cart)
         await db.commit()
         await db.refresh(cart)
-   
+
     return cart
 
 
@@ -74,23 +86,9 @@ async def add_movie_to_cart(
             status_code=status.HTTP_404_NOT_FOUND, detail="Movie does not exist."
         )
 
-    # Check if movie already purchased
-    # purchased = await db.execute(
-    #     select(MovieModel)
-    #     .join(UserPurchasedMovie)
-    #     .where(
-    #         UserPurchasedMovie.user_id == user.id,
-    #         UserPurchasedMovie.movie_id == data.movie_id,
-    #     )
-    # )
-    # if purchased.scalar_one_or_none():
-    #     raise HTTPException(status_code=400, detail="Movie already purchased.")
-
     # Check if already in cart
     exists = await db.execute(
-        select(CartItemModel)
-        
-        .where(
+        select(CartItemModel).where(
             CartItemModel.cart_id == cart.id, CartItemModel.movie_id == movie_id
         )
     )
@@ -98,6 +96,26 @@ async def add_movie_to_cart(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Movie is already in the cart.",
+        )
+    # Check if already purchased
+    order_result = await db.execute(
+        select(OrderModel)
+        .join(OrderItemModel)
+        .where(
+            OrderModel.user_id == user.id,
+            OrderItemModel.movie_id == movie_id,
+            OrderModel.status == OrderStatusEnum.PAID,
+        )
+    )
+
+    order = order_result.scalars().first()
+
+    if order:
+        print("orderr_id", order.id)
+        print("movie_idd", movie_id)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Movie has already been purchased.",
         )
 
     # Add new item
@@ -121,7 +139,7 @@ async def remove_from_cart(
     movie_id: int,
     db: AsyncSession = Depends(get_db),
     user: UserModel = Depends(get_current_user),
-) -> None:
+) -> Response:
     cart = await get_or_create_cart(db, user.id)
 
     result = await db.execute(
@@ -135,3 +153,5 @@ async def remove_from_cart(
         )
 
     await db.commit()
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

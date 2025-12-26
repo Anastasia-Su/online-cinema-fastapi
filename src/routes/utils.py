@@ -39,7 +39,7 @@ class SortOrder(str, Enum):
 
 async def increment_counter(
     db: AsyncSession, movie_id: int, counter: str, delta: int = 1
-):
+) -> None:
     await db.execute(
         update(MovieModel)
         .where(MovieModel.id == movie_id)
@@ -90,7 +90,6 @@ async def toggle_movie_reaction(
             .values(like=is_like)
         )
     else:
-        # Same reaction again → do nothing (or you could remove it — up to you)
         return
 
     # 2. Only update counter if it actually affects like_count
@@ -172,7 +171,7 @@ async def backfill_all_counters(db: AsyncSession):
 
 async def update_movie_rating_stats(
     db: AsyncSession, movie_id: int, old_rating: float | None, new_rating: float | None
-):
+) -> None:
     """
     Call this after any rating change.
     old_rating = previous value (None if insert)
@@ -202,14 +201,13 @@ async def update_movie_rating_stats(
             new_count = current_count - 1
             new_avg = (current_avg * current_count - old_rating) / new_count
     else:
-        return  # no change
+        return
 
     movie.rating_average = round(new_avg, 2)
     movie.rating_count = new_count
-    # await db.commit()
 
 
-async def resolve_relations(db, model_cls, names: list[str]):
+async def resolve_relations(db, model_cls, names: list[str]) -> list:
     """
     Resolve a list of names to ORM objects.
     - Case-insensitive matching (Postgres-friendly)
@@ -274,5 +272,3 @@ async def delete_paid_items_for_user(
             CartItemModel.movie_id.in_(paid_movie_ids_subq),
         )
     )
-
-    # return result.rowcount or 0

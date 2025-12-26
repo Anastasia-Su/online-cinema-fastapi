@@ -32,6 +32,66 @@ router = APIRouter(prefix="/profiles", tags=["profiles"])
     response_model=ProfileResponseSchema,
     summary="Create user profile",
     status_code=status.HTTP_201_CREATED,
+    description=(
+        "Creates a user profile for a given user ID. "
+        "The endpoint handles authentication, checks if a profile already exists, "
+        "uploads the avatar to S3, and stores the profile data in the database."
+    ),
+    responses={
+        201: {
+            "description": "Profile created successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "id": 1,
+                        "user_id": 42,
+                        "first_name": "John",
+                        "last_name": "Doe",
+                        "gender": "male",
+                        "date_of_birth": "1990-01-01",
+                        "info": "Some info about the user",
+                        "avatar": "https://s3.example.com/avatars/42_avatar.png",
+                    }
+                }
+            },
+        },
+        400: {
+            "description": "User already has a profile",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "User already has a profile."}
+                }
+            },
+        },
+        401: {
+            "description": "Unauthorized: user not found, inactive, or invalid token",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "User not found or not active."}
+                }
+            },
+        },
+        403: {
+            "description": "Forbidden: user does not have permission to create/edit this profile",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "You don't have permission to edit this profile."
+                    }
+                }
+            },
+        },
+        500: {
+            "description": "Failed to upload avatar",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Failed to upload avatar. Please try again later."
+                    }
+                }
+            },
+        },
+    },
 )
 async def create_profile(
     user_id: int,
@@ -43,29 +103,40 @@ async def create_profile(
     profile_data: ProfileCreateSchema = Depends(ProfileCreateSchema.from_form),
 ) -> ProfileResponseSchema:
     """
-    Creates a user profile.
+    Create a user profile for the specified user.
 
     Steps:
-    - Validate user authentication token.
-    - Check if the user already has a profile.
-    - Upload avatar to S3 storage.
-    - Store profile details in the database.
+    1. Validate user authentication token.
+    2. Check if the user has permission to create/edit this profile.
+    3. Ensure the user exists and is active.
+    4. Verify the user does not already have a profile.
+    5. Upload avatar image to S3 storage.
+    6. Create and store the profile in the database.
+    7. Return the created profile details with avatar URL.
 
-    Args:
-        user_id (int): The ID of the user for whom the profile is being created.
-        token (str): The authentication token.
-        jwt_manager (JWTAuthManagerInterface): JWT manager for decoding tokens.
-        db (AsyncSession): The asynchronous database session.
-        s3_client (S3StorageInterface): The asynchronous S3 storage client.
-        profile_data (ProfileCreateSchema): The profile data from the form.
+    :param user_id: The ID of the user for whom the profile is being created.
+    :type user_id: int
+    :param token: Authentication token for the current user.
+    :type token: str
+    :param jwt_manager: JWT manager for decoding and validating tokens.
+    :type jwt_manager: JWTAuthManagerInterface
+    :param db: Async SQLAlchemy session.
+    :type db: AsyncSession
+    :param s3_client: S3 storage client for avatar upload.
+    :type s3_client: S3StorageInterface
+    :param profile_data: Profile data from a multipart/form-data request.
+    :type profile_data: ProfileCreateSchema
 
-    Returns:
-        ProfileResponseSchema: The created user profile details.
+    :return: Created profile details including avatar URL.
+    :rtype: ProfileResponseSchema
 
-    Raises:
-        HTTPException: If authentication fails, if the user is not found or inactive,
-                       or if the profile already exists, or if S3 upload fails.
+    :raises HTTPException:
+        - 400 if the user already has a profile.
+        - 401 if the user is not found, inactive, or token is invalid.
+        - 403 if the current user does not have permission to create/edit the profile.
+        - 500 if the avatar upload to S3 fails.
     """
+
     try:
         payload = jwt_manager.decode_access_token(token)
         token_user_id = payload.get("user_id")

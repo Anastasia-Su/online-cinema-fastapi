@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Path
+from fastapi import APIRouter, Depends, HTTPException, status, Path, Response
 from typing import Annotated
 from sqlalchemy import select, update, func
 from sqlalchemy.exc import IntegrityError
@@ -42,11 +42,58 @@ from .utils import resolve_relations
 router = APIRouter(prefix="/moderator", tags=["moderator"])
 
 
-@router.get("/users/", response_model=list[UserListSchema])
+@router.get(
+    "/users/",
+    response_model=list[UserListSchema],
+    summary="List all users",
+    description=(
+        "Returns a list of all registered users. "
+        "Accessible only to moderators and administrators."
+    ),
+    responses={
+        200: {
+            "description": "Users retrieved successfully",
+            "content": {
+                "application/json": {
+                    "example": [
+                        {
+                            "id": 1,
+                            "email": "user@example.com",
+                            "is_active": True,
+                            "group": {"id": 2, "name": "USER"},
+                        }
+                    ]
+                }
+            },
+        },
+        403: {
+            "description": "Forbidden – insufficient permissions",
+            "content": {
+                "application/json": {"example": {"detail": "Not enough permissions"}}
+            },
+        },
+    },
+)
 async def list_users(
     db: AsyncSession = Depends(get_db),
     _: UserModel = Depends(require_moderator_or_admin),
-):
+) -> list[UserListSchema]:
+    """
+    Retrieve a list of all users.
+
+    This endpoint returns basic information for every registered user.
+    Access is restricted to moderators and administrators.
+
+    :param db: SQLAlchemy async database session.
+    :type db: AsyncSession
+
+    :return: List of users.
+    :rtype: list[UserListSchema]
+
+    :raises HTTPException:
+        - 403 if the requesting user lacks sufficient permissions.
+    """
+
     result = await db.execute(
         select(UserModel)
         .options(joinedload(UserModel.group))
@@ -56,12 +103,55 @@ async def list_users(
     return result.scalars().all()
 
 
-@router.get("/users/{user_id}", response_model=UserDetailSchema)
+@router.get(
+    "/users/{user_id}",
+    response_model=UserDetailSchema,
+    summary="Get user details",
+    description="Retrieve detailed information about a specific user by ID.",
+    responses={
+        200: {
+            "description": "User retrieved successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "id": 1,
+                        "email": "user@example.com",
+                        "is_active": True,
+                        "group": {"id": 2, "name": "USER"},
+                    }
+                }
+            },
+        },
+        404: {
+            "description": "User not found",
+            "content": {"application/json": {"example": {"detail": "User not found"}}},
+        },
+    },
+)
 async def get_user(
     user_id: int,
     db: AsyncSession = Depends(get_db),
     _: UserModel = Depends(require_moderator_or_admin),
-):
+) -> UserDetailSchema:
+    """
+    Retrieve user details by ID.
+
+    This endpoint returns full information about a specific user,
+    including their group and activation status.
+
+    :param user_id: Unique identifier of the user.
+    :type user_id: int
+    :param db: SQLAlchemy async database session.
+    :type db: AsyncSession
+
+    :return: Detailed user information.
+    :rtype: UserDetailSchema
+
+    :raises HTTPException:
+        - 404 if the user does not exist.
+        - 403 if the requester lacks sufficient permissions.
+    """
+
     result = await db.execute(
         select(UserModel)
         .options(joinedload(UserModel.group))
@@ -80,23 +170,54 @@ async def get_user(
     response_model=MovieDetailSchema,
     summary="Add a new movie",
     description=(
-        "<h3>This endpoint allows moderator or admin to add a new movie to the database. "
-        "It accepts details such as name, date, genres, actors, languages, and "
-        "other attributes. The associated country, genres, actors, and languages "
-        "will be created or linked automatically.</h3>"
+        "Creates a new movie entry. "
+        "All related entities (genres, stars, directors) must already exist."
     ),
+    status_code=status.HTTP_201_CREATED,
     responses={
         201: {
-            "description": "Movie created successfully.",
+            "description": "Movie created successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "id": 10,
+                        "name": "Inception",
+                        "year": 2010,
+                        "genres": [{"id": 1, "name": "Sci-Fi"}],
+                        "stars": [{"id": 5, "name": "Leonardo DiCaprio"}],
+                        "directors": [{"id": 2, "name": "Christopher Nolan"}],
+                    }
+                }
+            },
         },
         400: {
-            "description": "Invalid input.",
+            "description": "Invalid input data",
             "content": {
-                "application/json": {"example": {"detail": "Invalid input data."}}
+                "application/json": {
+                    "examples": {
+                        "invalid_certification": {
+                            "summary": "Invalid certification ID",
+                            "value": {"detail": "Invalid certification_id"},
+                        },
+                        "missing_genres": {
+                            "summary": "Genres not found",
+                            "value": {"detail": "Genres not found: {'Drama'}"},
+                        },
+                    }
+                }
+            },
+        },
+        409: {
+            "description": "Movie already exists",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "A movie with the same name and year already exists."
+                    }
+                }
             },
         },
     },
-    status_code=201,
 )
 async def post_movie(
     movie_data: MovieCreateSchema,
@@ -104,24 +225,25 @@ async def post_movie(
     db: AsyncSession = Depends(get_db),
 ) -> MovieDetailSchema:
     """
-    Add a new movie to the database.
+    Create a new movie.
 
-    This endpoint allows the creation of a new movie with details such as
-    name, release date, genres, actors, and languages. It automatically
-    handles linking or creating related entities.
+    This endpoint allows moderators or administrators to add a new movie.
+    Related entities (genres, stars, directors) are linked automatically.
 
-    :param movie_data: The data required to create a new movie.
+    :param movie_data: Data required to create a movie.
     :type movie_data: MovieCreateSchema
-    :param db: The SQLAlchemy async database session (provided via dependency injection).
+    :param db: SQLAlchemy async database session.
     :type db: AsyncSession
 
-    :return: The created movie with all details.
+    :return: Newly created movie.
     :rtype: MovieDetailSchema
 
     :raises HTTPException:
-        - 409 if a movie with the same name and date already exists.
-        - 400 if input data is invalid (e.g., violating a constraint).
+        - 400 if input data is invalid or relations are missing.
+        - 409 if a movie with the same name and year already exists.
+        - 403 if the requester lacks sufficient permissions.
     """
+
     existing_stmt = select(MovieModel).where(
         (MovieModel.name == movie_data.name), (MovieModel.year == movie_data.year)
     )
@@ -196,45 +318,66 @@ async def post_movie(
 @router.delete(
     "/movies/{movie_id}/",
     summary="Delete a movie by ID",
-    description=(
-        "<h3>Delete a specific movie from the database by its unique ID.</h3>"
-        "<p>If the movie exists, it will be deleted. If it does not exist, "
-        "a 404 error will be returned.</p>"
-    ),
+    description="Deletes a movie if it is not used in carts or orders.",
+    status_code=status.HTTP_204_NO_CONTENT,
     responses={
-        204: {"description": "Movie deleted successfully."},
+        204: {
+            "description": "Movie deleted successfully",
+        },
         404: {
-            "description": "Movie not found.",
+            "description": "Movie not found",
             "content": {
                 "application/json": {
                     "example": {"detail": "Movie with the given ID was not found."}
                 }
             },
         },
-        409: {"description": "Movie is in user's cart."},
+        409: {
+            "description": "Movie cannot be deleted",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "in_cart": {
+                            "summary": "Movie in cart",
+                            "value": {
+                                "detail": "Can't delete. This movie is in user's cart."
+                            },
+                        },
+                        "used_in_orders": {
+                            "summary": "Movie used in orders",
+                            "value": {
+                                "detail": "Can't delete. This movie has been purchased or ordered by users."
+                            },
+                        },
+                    }
+                }
+            },
+        },
     },
-    status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_movie(
     movie_id: int = Path(..., ge=1, le=9_223_372_036_854_775_807),
     _: UserModel = Depends(require_moderator_or_admin),
     db: AsyncSession = Depends(get_db),
-):
+) -> Response:
     """
-    Delete a specific movie by its ID.
+    Delete a movie by ID.
 
-    This function deletes a movie identified by its unique ID.
-    If the movie does not exist, a 404 error is raised.
+    A movie can only be deleted if it is not present in any cart
+    and has not been purchased or ordered by users.
 
-    :param movie_id: The unique identifier of the movie to delete.
+    :param movie_id: Unique identifier of the movie.
     :type movie_id: int
-    :param db: The SQLAlchemy database session (provided via dependency injection).
+    :param db: SQLAlchemy async database session.
     :type db: AsyncSession
 
-    :raises HTTPException: Raises a 404 error if the movie with the given ID is not found.
-
-    :return: A response indicating the successful deletion of the movie.
+    :return: None
     :rtype: None
+
+    :raises HTTPException:
+        - 404 if the movie does not exist.
+        - 409 if the movie is used in carts or orders.
+        - 403 if the requester lacks sufficient permissions.
     """
 
     stmt = select(MovieModel).where(MovieModel.id == movie_id)
@@ -247,11 +390,7 @@ async def delete_movie(
             detail="Movie with the given ID was not found.",
         )
 
-    cart_stmt = (
-        select(CartItemModel)
-        .where(CartItemModel.movie_id == movie_id)
-        .limit(1)
-    )
+    cart_stmt = select(CartItemModel).where(CartItemModel.movie_id == movie_id).limit(1)
 
     cart_exists = (await db.execute(cart_stmt)).first()
 
@@ -260,11 +399,9 @@ async def delete_movie(
             status_code=status.HTTP_409_CONFLICT,
             detail="Can't delete. This movie is in user's cart.",
         )
-            
+
     order_item_stmt = (
-        select(OrderItemModel.id)
-        .where(OrderItemModel.movie_id == movie_id)
-        .limit(1)
+        select(OrderItemModel.id).where(OrderItemModel.movie_id == movie_id).limit(1)
     )
 
     used_in_orders = (await db.execute(order_item_stmt)).first()
@@ -274,30 +411,34 @@ async def delete_movie(
             status_code=status.HTTP_409_CONFLICT,
             detail="Can't delete. This movie has been purchased or ordered by users.",
         )
-    
+
     await db.delete(movie)
     await db.commit()
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.patch(
     "/movies/{movie_id}/",
     summary="Update a movie by ID",
-    description=(
-        "<h3>Update details of a specific movie by its unique ID.</h3>"
-        "<p>This endpoint updates the details of an existing movie. If the movie with "
-        "the given ID does not exist, a 404 error is returned.</p>"
-    ),
+    description="Updates movie fields and related entities.",
     responses={
         200: {
-            "description": "Movie updated successfully.",
+            "description": "Movie updated successfully",
             "content": {
                 "application/json": {
                     "example": {"detail": "Movie updated successfully."}
                 }
             },
         },
+        400: {
+            "description": "Invalid input data",
+            "content": {
+                "application/json": {"example": {"detail": "Invalid input data."}}
+            },
+        },
         404: {
-            "description": "Movie not found.",
+            "description": "Movie not found",
             "content": {
                 "application/json": {
                     "example": {"detail": "Movie with the given ID was not found."}
@@ -311,24 +452,27 @@ async def update_movie(
     movie_id: int = Path(..., ge=1, le=9_223_372_036_854_775_807),
     _: UserModel = Depends(require_moderator_or_admin),
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, str]:
     """
-    Update a specific movie by its ID.
+    Update an existing movie.
 
-    This function updates a movie identified by its unique ID.
-    If the movie does not exist, a 404 error is raised.
+    This endpoint updates one or more fields of a movie, including
+    relational fields such as genres, stars, and directors.
 
-    :param movie_id: The unique identifier of the movie to update.
+    :param movie_id: Unique identifier of the movie.
     :type movie_id: int
-    :param movie_data: The updated data for the movie.
+    :param movie_data: Fields to update.
     :type movie_data: MovieUpdateSchema
-    :param db: The SQLAlchemy database session (provided via dependency injection).
+    :param db: SQLAlchemy async database session.
     :type db: AsyncSession
 
-    :raises HTTPException: Raises a 404 error if the movie with the given ID is not found.
+    :return: Confirmation message.
+    :rtype: dict[str, str]
 
-    :return: A response indicating the successful update of the movie.
-    :rtype: None
+    :raises HTTPException:
+        - 400 if provided data is invalid.
+        - 404 if the movie does not exist.
+        - 403 if the requester lacks sufficient permissions.
     """
 
     stmt = (
