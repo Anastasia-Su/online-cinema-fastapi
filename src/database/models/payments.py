@@ -25,13 +25,13 @@ class PaymentModel(Base):
     user_id = mapped_column(ForeignKey("users.id"), nullable=False)
     order_id = mapped_column(ForeignKey("orders.id"), nullable=False)
 
-    created_at = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     status = mapped_column(
-        SQLEnum(PaymentStatusEnum, name="payment_status_enum",),
-        
+        SQLEnum(
+            PaymentStatusEnum,
+            name="payment_status_enum",
+        ),
         default=PaymentStatusEnum.SUCCESSFUL,
         nullable=False,
     )

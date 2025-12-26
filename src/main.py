@@ -18,7 +18,7 @@ from src.routes import (
     ratings_router,
     cart_router,
     order_router,
-    payment_router
+    payment_router,
 )
 
 

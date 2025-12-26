@@ -13,7 +13,7 @@ class RatingCreateSchema(RatingBase):
 
 
 class RatingUpdateSchema(RatingBase):
-    pass  
+    pass
 
 
 class RatingSchema(RatingBase):
@@ -23,5 +23,5 @@ class RatingSchema(RatingBase):
     updated_at: datetime
 
     username: Optional[str] = None
-    
+
     model_config: ConfigDict = ConfigDict(from_attributes=True)

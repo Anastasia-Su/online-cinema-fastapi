@@ -12,15 +12,14 @@ from sqlalchemy.orm import relationship
 from src.database import Base
 
 
-
 # from src.database.models.user import UserModel
+
 
 class OrderStatusEnum(str, Enum):
     PENDING = "pending"
     PAID = "paid"
     REFUNDED = "refunded"
     CANCELED = "canceled"
-
 
 
 class OrderModel(Base):

@@ -41,7 +41,7 @@ class BaseAppSettings(BaseSettings):
     CELERY_RESULT_BACKEND: str = os.getenv(
         "CELERY_RESULT_BACKEND", "redis://localhost:6379/1"
     )
-    
+
     STRIPE_SECRET_KEY: str = os.getenv("STRIPE_SECRET_KEY")
     STRIPE_WEBHOOK_SECRET: str = os.getenv("STRIPE_WEBHOOK_SECRET")
     STRIPE_PAYMENT_METHOD: str = os.getenv("STRIPE_PAYMENT_METHOD")
@@ -70,13 +70,11 @@ class Settings(BaseAppSettings):
 
 
 class TestingSettings(BaseAppSettings):
-    PATH_TO_DB: str = ":memory:" 
+    PATH_TO_DB: str = ":memory:"
     # S3_STORAGE_ENDPOINT: str = "http://localhost:9000"
     CELERY_BROKER_URL: str = "memory://"
-    CELERY_RESULT_BACKEND: str = "memory://"  
-    
+    CELERY_RESULT_BACKEND: str = "memory://"
+
     SECRET_KEY_ACCESS: str = "SECRET_KEY_ACCESS"
     SECRET_KEY_REFRESH: str = "SECRET_KEY_REFRESH"
     JWT_SIGNING_ALGORITHM: str = "HS256"
-
-   

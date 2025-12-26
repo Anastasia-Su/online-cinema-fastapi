@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, func, and_, asc, desc
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from typing import Optional
@@ -11,20 +10,13 @@ from src.database import (
     StarModel,
     DirectorModel,
     MovieModel,
-    MovieCommentModel,
     MovieDirectorModel,
     MovieStarModel,
     MovieGenreModel,
-    MovieLikeModel,
-    UserFavoriteMovieModel,
     get_db,
 )
-from src.schemas import MovieListResponseSchema, MovieListItemSchema, MovieDetailSchema
-from src.schemas.movies import MovieCreateSchema, MovieUpdateSchema
-from ..utils import SortBy, SortOrder, increment_counter
-
-from sqlalchemy import select, func, literal_column
-from sqlalchemy.orm import contains_eager
+from src.schemas import MovieListResponseSchema, MovieDetailSchema
+from ..utils import SortBy, SortOrder
 
 
 router = APIRouter(prefix="/movies", tags=["movies"])

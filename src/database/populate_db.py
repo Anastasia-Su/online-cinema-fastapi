@@ -1,20 +1,11 @@
-import os
+import random
 from decimal import Decimal
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-
-ENV = os.getenv("ENVIRONMENT", "testing")
-
-import asyncio
-import random
 from faker import Faker
 from sqlalchemy import select, func, insert
-from sqlalchemy.ext.asyncio import AsyncSession
-from src.database import get_db_contextmanager
 
 from src.database import (
-    # AsyncSessionLocal,
     MovieModel,
     GenreModel,
     StarModel,
@@ -27,6 +18,10 @@ from src.database import (
     OrderModel,
     OrderItemModel,
 )
+
+import os
+
+ENV = os.getenv("ENVIRONMENT", "testing")
 
 
 if ENV == "testing":

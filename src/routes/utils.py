@@ -5,7 +5,6 @@ from sqlalchemy import delete, insert, update, select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import (
-    # get_async_session,
     MovieModel,
     MovieLikeModel,
     UserFavoriteMovieModel,
@@ -13,7 +12,6 @@ from src.database import (
     MovieRatingModel,
     CartModel,
     CartItemModel,
-    MovieModel,
     OrderItemModel,
     PaymentStatusEnum,
     PaymentModel,
@@ -40,6 +38,8 @@ class SortOrder(str, Enum):
 async def increment_counter(
     db: AsyncSession, movie_id: int, counter: str, delta: int = 1
 ) -> None:
+    """Increment a numeric counter field on a movie."""
+
     await db.execute(
         update(MovieModel)
         .where(MovieModel.id == movie_id)
@@ -53,6 +53,8 @@ async def toggle_movie_reaction(
     movie_id: int,
     is_like: bool,
 ) -> None:
+    """Create or update a user's like/dislike reaction for a movie."""
+
     # 1. Get current reaction (if any)
     current = await db.scalar(
         select(MovieLikeModel.c.like).where(
@@ -99,7 +101,8 @@ async def toggle_movie_reaction(
     await db.commit()
 
 
-async def backfill_all_counters(db: AsyncSession):
+async def backfill_all_counters(db: AsyncSession) -> None:
+    """Recalculate all movie counters from database relations."""
 
     print("Starting backfill using pure SQLAlchemy...")
 

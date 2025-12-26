@@ -2,26 +2,12 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from fastapi import Depends, HTTPException, status
-from sqlalchemy import select
 from src.config import get_jwt_auth_manager
-from src.config.settings import TestingSettings, Settings, BaseAppSettings
-from src.database import get_db
-from src.database import UserModel
-from src.notifications import EmailSenderInterface, EmailSender
+from src.database import get_db, UserModel
 from src.security.interfaces import JWTAuthManagerInterface
-from src.security.token_manager import JWTAuthManager
-from src.storages import S3StorageInterface, S3StorageClient
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from src.tasks.redis_blacklist import get_redis, is_token_revoked
 from src.exceptions import TokenExpiredError, InvalidTokenError
-
-
-
-from src.database import UserModel, UserGroupEnum 
-# get_current_user
-# from src.config.get_current_user import get_current_user
 
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -33,10 +19,14 @@ async def get_current_user(
     redis=Depends(get_redis),
     db: AsyncSession = Depends(get_db),
 ) -> UserModel:
+    """Authenticate the request and return the current user from a JWT token."""
+
     token = credentials.credentials if credentials else None
     print("Token received:", token)
     if not token:
-        print("JWT error:",)
+        print(
+            "JWT error:",
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token"
         )

@@ -25,5 +25,3 @@ class CartSchema(BaseModel):
     items: list[CartItemSchema]
 
     model_config: ConfigDict = ConfigDict(from_attributes=True)
-
-

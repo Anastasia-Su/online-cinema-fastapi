@@ -1,65 +1,35 @@
+import stripe
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import selectinload
 from src.database import (
     UserModel,
     UserGroupModel,
-    UserGroupEnum,
     CartModel,
     CartItemModel,
     MovieModel,
     OrderModel,
     OrderItemModel,
     OrderStatusEnum,
+    PaymentStatusEnum,
+    PaymentModel,
     get_db,
 )
 
-
 from src.schemas import (
-    UserListSchema,
-    UserDetailSchema,
     UserGroupUpdateSchema,
     UserActivateSchema,
     CartSchema,
     OrderResponseSchema,
+    PaymentListSchema
 )
 from src.config.get_admin import require_admin
-from .utils import backfill_all_counters
-import stripe
-from decimal import Decimal
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, selectinload
-from sqlalchemy import select, delete, exists
 from src.config.get_settings import get_settings
-from src.database import (
-    get_db,
-    CartModel,
-    CartItemModel,
-    UserModel,
-    MovieModel,
-    OrderItemModel,
-    OrderModel,
-    OrderStatusEnum,
-    PaymentStatusEnum,
-    PaymentModel,
-    PaymentItemModel,
-)
 from src.config import BaseAppSettings
-from src.schemas import (
-    CartSchema,
-    CartItemSchema,
-    MovieCartSchema,
-    OrderResponseSchema,
-    OrderListResponseSchema,
-    OrderItemResponseSchema,
-    MovieListItemSchema,
-    PaymentItemResponseSchema,
-    PaymentListSchema,
-    PaymentResponseSchema,
-)
+from .utils import backfill_all_counters
+
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 

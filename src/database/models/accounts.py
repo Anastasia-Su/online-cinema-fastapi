@@ -130,15 +130,11 @@ class UserModel(Base):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
-    
+
     cart = relationship(
-        "CartModel",
-        back_populates="user",
-        uselist=False,   
-        cascade="all, delete-orphan"
+        "CartModel", back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
     orders = relationship("OrderModel", back_populates="user")
-
 
     def __repr__(self):
         return (
