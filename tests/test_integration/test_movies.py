@@ -502,25 +502,19 @@ async def test_delete_movie_success(client, db_session, jwt_manager):
     """
     Test the `/movies/{movie_id}/` endpoint for successful movie deletion.
     """
-    stmt = select(MovieModel).limit(1)
-    result = await db_session.execute(stmt)
-    movie = result.scalars().first()
-    assert movie is not None, "No movies found in the database to delete."
-
-    movie_id = movie.id
-
-  
+    
     headers = await get_headers(db_session, jwt_manager, 2)
 
-    response = await client.delete(f"/moderator/movies/{movie_id}/", headers=headers)
+    response = await client.delete(f"/moderator/movies/5/", headers=headers)
+    
     assert (
         response.status_code == 204
     ), f"Expected status code 204, but got {response.status_code}"
 
-    stmt_check = select(MovieModel).where(MovieModel.id == movie_id)
+    stmt_check = select(MovieModel).where(MovieModel.id == 5)
     result_check = await db_session.execute(stmt_check)
     deleted_movie = result_check.scalars().first()
-    assert deleted_movie is None, f"Movie with ID {movie_id} was not deleted."
+    assert deleted_movie is None, f"Movie with ID 5 was not deleted."
 
 
 @pytest.mark.asyncio(loop_scope="session")

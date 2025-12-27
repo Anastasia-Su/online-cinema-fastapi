@@ -163,6 +163,10 @@ async def seed_users(session: AsyncSession) -> None:
     if len(group_map) < 3:
         raise RuntimeError("User groups not seeded properly!")
 
+    existing_emails = set(
+        (await session.execute(select(UserModel.email))).scalars().all()
+    )
+
     users = [
         UserModel.create(
             email="admin@test.com",
@@ -179,7 +183,10 @@ async def seed_users(session: AsyncSession) -> None:
         ),
     ]
 
-    session.add_all(users)
+    # session.add_all(users)
+    for user in users:
+        if user.email not in existing_emails:
+            session.add(user)
     await session.flush()
 
 
