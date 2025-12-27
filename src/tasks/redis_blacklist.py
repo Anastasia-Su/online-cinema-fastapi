@@ -23,7 +23,7 @@ async def get_redis() -> aioredis.Redis:
     return _redis
 
 
-async def revoke_token(token: str, expires_at: datetime, redis: aioredis.Redis):
+async def revoke_token(token: str, expires_at: datetime, redis: aioredis.Redis) -> None:
     if expires_at.tzinfo is None:
         expires_at = expires_at.replace(tzinfo=timezone.utc)
 
@@ -51,9 +51,8 @@ async def is_token_revoked(token: str, redis: aioredis.Redis) -> bool:
 
 
 # ——— Admin / Debug Only ———
-# WARNING: KEYS is slow! Use only in dev or admin endpoint
-async def list_revoked_tokens(redis: aioredis.Redis = Depends(get_redis)):
-    """For debugging only. Never use in production route."""
+async def list_revoked_tokens(redis: aioredis.Redis = Depends(get_redis)) -> list:
+    """For debugging only."""
     try:
         keys = await redis.keys("revoked:*")
         return [key.split(":", 1)[1] for key in keys]

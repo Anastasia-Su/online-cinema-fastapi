@@ -1,8 +1,10 @@
 from enum import Enum
+from typing import TypeVar, Type, Sequence
 from fastapi import HTTPException
 
 from sqlalchemy import delete, insert, update, select, func
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import DeclarativeBase
 
 from src.database import (
     MovieModel,
@@ -19,7 +21,7 @@ from src.database import (
 )
 
 
-from sqlalchemy.orm import selectinload
+T = TypeVar("T", bound=DeclarativeBase)
 
 
 class SortBy(str, Enum):
@@ -210,7 +212,9 @@ async def update_movie_rating_stats(
     movie.rating_count = new_count
 
 
-async def resolve_relations(db, model_cls, names: list[str]) -> list:
+async def resolve_relations(
+    db: AsyncSession, model_cls: Type[T], names: Sequence[str]
+) -> list[T]:
     """
     Resolve a list of names to ORM objects.
     - Case-insensitive matching (Postgres-friendly)
@@ -251,7 +255,7 @@ async def resolve_relations(db, model_cls, names: list[str]) -> list:
 async def delete_paid_items_for_user(
     db: AsyncSession,
     user_id: int,
-):
+) -> None:
     cart = (
         await db.execute(select(CartModel).where(CartModel.user_id == user_id))
     ).scalar_one_or_none()

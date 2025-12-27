@@ -44,15 +44,12 @@ fake = Faker()
 NUM_MOVIES = 10_000  # number of movies to add
 
 
-async def seed_movies(session: AsyncSession, num_movies=NUM_MOVIES):
-
-    # ✅ Keep existing data — just reuse it
+async def seed_movies(session: AsyncSession, num_movies: int = NUM_MOVIES) -> None:
     certifications = (await session.execute(select(CertificationModel))).scalars().all()
     genres = (await session.execute(select(GenreModel))).scalars().all()
     stars = (await session.execute(select(StarModel))).scalars().all()
     directors = (await session.execute(select(DirectorModel))).scalars().all()
 
-    # ✅ If reference tables are empty, seed them
     if not certifications:
         certifications = [
             CertificationModel(name=name) for name in ["G", "PG", "PG-13", "R", "NC-17"]
@@ -153,7 +150,7 @@ async def seed_user_groups(session: AsyncSession) -> None:
         print("User groups seeded successfully.")
 
 
-async def seed_users(session: AsyncSession):
+async def seed_users(session: AsyncSession) -> None:
     from src.database.models.accounts import UserModel, UserGroupModel
     from sqlalchemy import select
 
@@ -186,7 +183,7 @@ async def seed_users(session: AsyncSession):
     await session.flush()
 
 
-async def seed_orders(session: AsyncSession):
+async def seed_orders(session: AsyncSession) -> None:
     """
     Minimal orders seeding for payment tests.
     """

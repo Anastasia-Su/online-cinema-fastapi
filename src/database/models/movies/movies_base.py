@@ -103,7 +103,7 @@ class GenreModel(Base):
         ),
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Genre(name='{self.name}')>"
 
 
@@ -117,7 +117,7 @@ class StarModel(Base):
         "MovieModel", secondary=MovieStarModel, back_populates="stars"
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Star(name='{self.name}')>"
 
 
@@ -131,7 +131,7 @@ class DirectorModel(Base):
         "MovieModel", secondary=MovieDirectorModel, back_populates="directors"
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Director(name='{self.name}')>"
 
 
@@ -145,7 +145,7 @@ class CertificationModel(Base):
         "MovieModel", back_populates="certification", cascade="all, delete-orphan"
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<Certification(name='{self.name}')>"
 
 
@@ -231,7 +231,7 @@ class MovieModel(Base):
         Index("idx_movies_price", "price"),
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"<Movie(name='{self.name}', year={self.year}, "
             f"time={self.time}, imdb={self.imdb}, certification_id={self.certification_id})>"

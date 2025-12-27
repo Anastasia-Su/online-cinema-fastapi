@@ -381,7 +381,7 @@ async def activate_account(
     },
 )
 async def logout_user(
-    _=Depends(get_current_user),
+    _: UserModel = Depends(get_current_user),
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
     db: AsyncSession = Depends(get_db),
@@ -431,8 +431,8 @@ async def logout_user(
 
     try:
         await revoke_token(token, expires_at, redis)
-        revoked_tokens = await list_revoked_tokens()
-        print("revoked_tokens_list", revoked_tokens)
+        # revoked_tokens = await list_revoked_tokens()
+        # print("revoked_tokens_list", revoked_tokens)
 
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -576,7 +576,10 @@ async def request_password_reset_token(
     db.add(reset_token)
     await db.commit()
 
-    password_reset_complete_link = f"http://127.0.0.1/accounts/password-reset-complete/?token={reset_token.token}&email={data.email}"
+    password_reset_complete_link = (
+        f"http://127.0.0.1/accounts/password-reset-complete/"
+        f"?token={reset_token.token}&email={data.email}"
+    )
 
     await email_sender.send_password_reset_email(
         str(data.email), password_reset_complete_link

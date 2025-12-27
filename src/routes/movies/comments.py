@@ -157,7 +157,7 @@ async def create_comment(
     response_model=list[CommentSchema],
     operation_id="get_movie_comments",
     summary="Get comments for a movie",
-    description="Retrieve a paginated list of comments for a given movie, including nested replies and like information.",
+    description="Retrieve a paginated list of comments for a given movie.",
     responses={
         200: {
             "description": "List of comments for the movie",

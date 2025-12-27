@@ -1114,6 +1114,21 @@ pycodestyle = ">=2.14.0,<2.15.0"
 pyflakes = ">=3.4.0,<3.5.0"
 
 [[package]]
+name = "flake8-annotations"
+version = "3.2.0"
+description = "Flake8 Type Annotation Checks"
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "flake8_annotations-3.2.0-py3-none-any.whl", hash = "sha256:2b0203cac0eb33c43463f1a986c3cc70a448d9d593da75567173f46f64e9213c"},
+    {file = "flake8_annotations-3.2.0.tar.gz", hash = "sha256:71b52ec85a4ec82a10edfad497fe2b390609c95b2ad7d61cc94704bc88a498a0"},
+]
+
+[package.dependencies]
+flake8 = ">=5.0"
+
+[[package]]
 name = "frozenlist"
 version = "1.8.0"
 description = "A list-like structure which implements collections.abc.MutableSequence"
@@ -3164,4 +3179,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10"
-content-hash = "2ef33bac1609e8f38e261a1f8415fd81d2341f8dbbea302010d745c6e06b01e4"
+content-hash = "c7116cc4c357a5644a2f602b9b3cb7ff32b36d764132a74d490d2f6a35550de7"

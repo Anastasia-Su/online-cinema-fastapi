@@ -8,7 +8,7 @@ from fastapi import UploadFile
 from src.database import GenderEnum
 
 
-def validate_name(name: str):
+def validate_name(name: str) -> str:
     cleaned = name.strip()
     if not cleaned:
         raise ValueError("Name cannot be empty or whitespace only")

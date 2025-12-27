@@ -2,6 +2,7 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
+from aioredis import Redis
 from src.config import get_jwt_auth_manager
 from src.database import get_db, UserModel
 from src.security.interfaces import JWTAuthManagerInterface
@@ -16,7 +17,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
-    redis=Depends(get_redis),
+    redis: Redis = Depends(get_redis),
     db: AsyncSession = Depends(get_db),
 ) -> UserModel:
     """Authenticate the request and return the current user from a JWT token."""

@@ -46,7 +46,7 @@ class UserGroupModel(Base):
 
     users: Mapped[list["UserModel"]] = relationship("UserModel", back_populates="group")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<UserGroupModel(id={self.id}, name={self.name})>"
 
 
@@ -136,7 +136,7 @@ class UserModel(Base):
     )
     orders = relationship("OrderModel", back_populates="user")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"<UserModel(id={self.id}, email={self.email}, is_active={self.is_active})>"
         )
@@ -191,7 +191,7 @@ class UserModel(Base):
         return verify_password(raw_password, self._hashed_password)
 
     @validates("email")
-    def validate_email(self, key, value):
+    def validate_email(self, key, value: str) -> str:
         return validators.validate_email(value.lower())
 
 
@@ -213,7 +213,7 @@ class UserProfileModel(Base):
 
     __table_args__ = (UniqueConstraint("user_id"),)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"<UserProfileModel(id={self.id}, first_name={self.first_name}, last_name={self.last_name}, "
             f"gender={self.gender}, date_of_birth={self.date_of_birth})>"
@@ -247,7 +247,7 @@ class ActivationTokenModel(TokenBaseModel):
 
     __table_args__ = (UniqueConstraint("user_id"),)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<ActivationTokenModel(id={self.id}, token={self.token}, expires_at={self.expires_at})>"
 
 
@@ -260,7 +260,7 @@ class PasswordResetTokenModel(TokenBaseModel):
 
     __table_args__ = (UniqueConstraint("user_id"),)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<PasswordResetTokenModel(id={self.id}, token={self.token}, expires_at={self.expires_at})>"
 
 
@@ -286,5 +286,5 @@ class RefreshTokenModel(TokenBaseModel):
         expires_at = datetime.now(timezone.utc) + timedelta(days=days_valid)
         return cls(user_id=user_id, expires_at=expires_at, token=token)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<RefreshTokenModel(id={self.id}, token={self.token}, expires_at={self.expires_at})>"

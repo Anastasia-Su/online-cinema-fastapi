@@ -23,7 +23,7 @@ from src.schemas import (
     UserActivateSchema,
     CartSchema,
     OrderResponseSchema,
-    PaymentListSchema
+    PaymentListSchema,
 )
 from src.config.get_admin import require_admin
 from src.config.get_settings import get_settings

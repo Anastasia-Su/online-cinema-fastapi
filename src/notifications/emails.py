@@ -26,7 +26,7 @@ class EmailSender(EmailSenderInterface):
         comment_reply_template_name: str,
         comment_like_template_name: str,
         payment_email_template_name: str,
-    ):
+    ) -> None:
         self._hostname = hostname
         self._port = port
         self._email = email

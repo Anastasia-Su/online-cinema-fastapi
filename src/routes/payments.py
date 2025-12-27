@@ -252,7 +252,11 @@ async def stripe_webhook(
         await db.commit()
 
         header = "Payment succeeded"
-        message = f"Your payment for the order {order_id} is successful.<br />Payment id: {intent['id']}<br />Amount: {intent['amount'] / 100}"
+        message = (
+            f"Your payment for the order {order_id} is successful.<br />"
+            f"Payment id: {intent['id']}<br />"
+            f"Amount: {intent['amount'] / 100}"
+        )
         user = await db.get(UserModel, user_id)
 
     elif event["type"] == "payment_intent.payment_failed":
@@ -262,7 +266,10 @@ async def stripe_webhook(
         amount = intent["amount"] / 100
 
         header = "Payment failed"
-        message = f"Your payment of ${amount} for order {order_id} failed.<br />Reason: {intent['last_payment_error']['message']}"
+        message = (
+            f"Your payment of ${amount} for order {order_id} failed.<br />"
+            f"Reason: {intent['last_payment_error']['message']}"
+        )
 
         user = await db.get(UserModel, user_id)
 

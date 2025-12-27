@@ -10,11 +10,13 @@ from src.tasks.celery_app import celery_app
 
 from src.config.get_settings import get_settings  # ← direct import
 from src.notifications import EmailSender  # ← the real class
+from typing import TypeVar, Awaitable
 
+T = TypeVar("T")
 logger = logging.getLogger(__name__)
 
 
-def run_async(coro):
+def run_async(coro: Awaitable[T]) -> T:
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -56,8 +58,9 @@ def send_comment_reply_email(
     parent_preview: str,
     current_preview: str,
     reply_link: str,
-):
+) -> None:
     """Send email when someone replies to a comment"""
+
     try:
         email_sender = get_accounts_email_notificator_celery()
 
@@ -84,8 +87,9 @@ def send_comment_like_email(
     email: str,
     parent_preview: str,
     comment_link: str,
-):
+) -> None:
     """Send email when someone likes a comment."""
+
     try:
         email_sender = get_accounts_email_notificator_celery()
 

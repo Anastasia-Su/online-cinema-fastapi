@@ -16,7 +16,7 @@ class S3StorageClient(S3StorageInterface):
 
     def __init__(
         self, endpoint_url: str, access_key: str, secret_key: str, bucket_name: str
-    ):
+    ) -> None:
         """
         Initialize the asynchronous S3 Storage Client using an aioboto3 Session.
 

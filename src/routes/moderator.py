@@ -508,7 +508,10 @@ async def update_movie(
     for field, value in update_data.items():
         if field in RELATION_MAP:
             if not isinstance(value, list):
-                raise HTTPException(400, f"{field} must be a list of names")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"{field} must be a list of names",
+                )
             related_objs = await resolve_relations(db, RELATION_MAP[field], value)
             setattr(movie, field, related_objs)
         else:

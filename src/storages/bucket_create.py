@@ -6,7 +6,7 @@ import aioboto3
 
 async def create_bucket_if_not_exists(
     settings: BaseAppSettings = get_settings(),
-):
+) -> None:
     session = aioboto3.Session(
         aws_access_key_id=settings.S3_STORAGE_ACCESS_KEY,
         aws_secret_access_key=settings.S3_STORAGE_SECRET_KEY,

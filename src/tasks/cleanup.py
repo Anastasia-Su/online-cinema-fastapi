@@ -11,8 +11,9 @@ SessionLocal = sessionmaker(bind=sync_engine, autocommit=False, autoflush=False)
 
 
 @celery_app.task(name="src.tasks.cleanup.cleanup_expired_tokens")
-def cleanup_expired_tokens():
+def cleanup_expired_tokens() -> None:
     """Delete expired activation and password reset tokens."""
+
     now = datetime.now(timezone.utc)
 
     with SessionLocal() as session:
