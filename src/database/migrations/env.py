@@ -8,6 +8,7 @@ from alembic import context
 
 # from database.models import movies
 from src.database.models.base import Base
+from src.database.models import *
 from src.database import sync_engine
 
 # this is the Alembic Config object, which provides

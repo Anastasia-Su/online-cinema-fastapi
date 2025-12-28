@@ -52,4 +52,3 @@ celery_app = make_celery()
 
 # Export for worker/beats
 __all__ = ("celery_app",)
-# __import__("src.tasks.comment_notifications")

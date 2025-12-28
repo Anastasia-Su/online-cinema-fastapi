@@ -2,6 +2,7 @@
 from fastapi import Depends
 import aioredis
 from datetime import datetime, timezone
+from src.config.get_settings import get_settings
 
 _redis: aioredis.Redis | None = None
 
@@ -9,9 +10,11 @@ _redis: aioredis.Redis | None = None
 async def get_redis() -> aioredis.Redis:
     """Get shared Redis connection (lazy init)."""
     global _redis
+    settings = get_settings()
     if _redis is None:
         _redis = aioredis.from_url(
-            "redis://localhost:6379",  # "redis://localhost:6379"
+            # "redis://localhost:6379",  
+            settings.CELERY_BROKER_URL,
             decode_responses=True,
             encoding="utf-8",
         )

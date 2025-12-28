@@ -1,4 +1,5 @@
 import random
+import asyncio
 from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +22,7 @@ from src.database import (
 
 import os
 
-ENV = os.getenv("ENVIRONMENT", "testing")
+ENV = os.getenv("ENVIRONMENT", "developing")
 
 
 if ENV == "testing":
@@ -147,7 +148,7 @@ async def seed_user_groups(session: AsyncSession) -> None:
         await session.execute(insert(UserGroupModel).values(groups))
         await session.flush()
 
-        print("User groups seeded successfully.")
+        print("✅ User groups seeded successfully.")
 
 
 async def seed_users(session: AsyncSession) -> None:
@@ -188,6 +189,8 @@ async def seed_users(session: AsyncSession) -> None:
         if user.email not in existing_emails:
             session.add(user)
     await session.flush()
+    
+    print("✅ Users seeded successfully")
 
 
 async def seed_orders(session: AsyncSession) -> None:
@@ -261,6 +264,5 @@ async def seed_orders(session: AsyncSession) -> None:
     print("✅ Seeded 1 PENDING and 1 PAID order")
 
 
-# def make_token(user, jwt_manager):
-#     access = jwt_manager.create_access_token({"user_id": user.id})
-#     return {"Authorization": f"Bearer {access}"}
+if __name__ == "__main__":
+    asyncio.run(())
