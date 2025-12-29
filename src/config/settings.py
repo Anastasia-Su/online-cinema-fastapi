@@ -69,12 +69,12 @@ class Settings(BaseAppSettings):
     JWT_SIGNING_ALGORITHM: str = os.getenv("JWT_SIGNING_ALGORITHM", "HS256")
 
 
-class TestingSettings(BaseAppSettings):
+class TestingSettings(Settings):
     PATH_TO_DB: str = ":memory:"
     # S3_STORAGE_ENDPOINT: str = "http://localhost:9000"
     CELERY_BROKER_URL: str = "memory://"
     CELERY_RESULT_BACKEND: str = "memory://"
 
-    SECRET_KEY_ACCESS: str = "SECRET_KEY_ACCESS"
-    SECRET_KEY_REFRESH: str = "SECRET_KEY_REFRESH"
-    JWT_SIGNING_ALGORITHM: str = "HS256"
+    # SECRET_KEY_ACCESS: str = "SECRET_KEY_ACCESS"
+    # SECRET_KEY_REFRESH: str = "SECRET_KEY_REFRESH"
+    # JWT_SIGNING_ALGORITHM: str = "HS256"

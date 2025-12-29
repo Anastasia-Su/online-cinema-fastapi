@@ -25,24 +25,6 @@ echo "Running database seeder..."
 python -m src.database.populate_db_run
 echo "Database seeding completed."
 
-# Optional: temp migration generator
-echo "Generating temporary migration..."
-if alembic -c $ALEMBIC_CONFIG revision --autogenerate -m "temp_migration"; then
-    LAST_MIGRATION=$(find "$MIGRATIONS_DIR" -type f -printf '%T+ %p\n' | sort | tail -n 1 | awk '{print $2}')
-    echo "Generated migration content:"
-    cat "$LAST_MIGRATION"
-
-    if grep -qE '^\s*pass\s*$' "$LAST_MIGRATION"; then
-        echo "No changes detected. Deleting temporary migration."
-        rm "$LAST_MIGRATION"
-    else
-        echo "Changes detected. Applying migration..."
-        alembic -c $ALEMBIC_CONFIG upgrade head
-    fi
-else
-    echo "No temp migration generated (no changes)."
-fi
-
 
 # # SQLAlchemy migrate
 # ALEMBIC_CONFIG="/usr/src/alembic/alembic.ini"

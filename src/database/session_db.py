@@ -3,23 +3,10 @@ from typing import AsyncGenerator
 
 from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker, joinedload
-
-from src.config import get_jwt_auth_manager
+from sqlalchemy.orm import sessionmaker
 from src.config.get_settings import get_settings
 
-
-from fastapi import Depends, HTTPException, status
-from sqlalchemy import select
-from src.config.settings import TestingSettings, Settings, BaseAppSettings
-from src.database import UserModel
-from src.notifications import EmailSenderInterface, EmailSender
-from src.security.interfaces import JWTAuthManagerInterface
-from src.security.token_manager import JWTAuthManager
-from src.storages import S3StorageInterface, S3StorageClient
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from src.tasks.redis_blacklist import get_redis, is_token_revoked
-from src.exceptions import TokenExpiredError, InvalidTokenError
+from fastapi.security import HTTPBearer
 
 
 bearer_scheme = HTTPBearer(auto_error=False)

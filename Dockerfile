@@ -38,10 +38,11 @@ RUN poetry install --no-root --only main
 WORKDIR /usr/src/fastapi
 
 # Copy the source code
-COPY ./src .
+COPY ./src ./src
 
 # Copy commands
 COPY ./commands /commands
+# COPY ./tests /tests
 
 # Ensure Unix-style line endings for scripts
 RUN dos2unix /commands/*.sh

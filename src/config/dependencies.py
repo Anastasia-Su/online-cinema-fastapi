@@ -12,7 +12,7 @@ from src.security.interfaces import JWTAuthManagerInterface
 from src.security.token_manager import JWTAuthManager
 from src.storages import S3StorageInterface, S3StorageClient
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from src.tasks.redis_blacklist import get_redis, is_token_revoked
+
 from src.exceptions import TokenExpiredError, InvalidTokenError
 
 

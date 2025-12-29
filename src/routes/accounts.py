@@ -50,8 +50,6 @@ from src.security.interfaces import JWTAuthManagerInterface
 
 from src.tasks.redis_blacklist import (
     revoke_token,
-    is_token_revoked,
-    list_revoked_tokens,
     get_redis,
 )
 from fastapi.security import OAuth2PasswordBearer
