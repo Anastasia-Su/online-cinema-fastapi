@@ -180,7 +180,9 @@ async def seed_users(session: AsyncSession) -> None:
             group_id=group_map["moderator"],
         ),
         UserModel.create(
-            email="user@test.com", raw_password="Password3!", group_id=group_map["user"]
+            email="user@test.com", 
+            raw_password="Password3!", 
+            group_id=group_map["user"]
         ),
     ]
 
@@ -189,7 +191,7 @@ async def seed_users(session: AsyncSession) -> None:
         if user.email not in existing_emails:
             session.add(user)
     await session.flush()
-    
+
     print("✅ Users seeded successfully")
 
 

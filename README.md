@@ -13,13 +13,14 @@ source venv/bin/activate (on macOS)
 pip install poetry
 poetry install
 ```
-alembic upgrade head
+
 
 * Create .env file and set it according to .env.sample.
-* Upgrade alembic and populate db:
+* Upgrade alembic, populate db and run the app:
 ```bash
 alembic upgrade head
 python -m src.database.populate_db_run
+uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload                   
 ```
 
 ## Features
@@ -120,6 +121,23 @@ Manage multi-container Docker applications, defining services, networks, and vol
 `docker-compose-dev.yml`: Configuration for the development environment, including services, volumes, and ports tailored for development workflows.
 `docker-compose-prod.yml`: Configuration for the production environment, optimized for performance, security, and scalability.
 `docker-compose-tests.yml`: Configuration for running tests within Docker containers, ensuring isolation and consistency during testing.
+
+### Commands for project services
+
+* Minio:
+```bash
+docker run -p 9000:9000 -p 9001:9001 --name minio-local -e "MINIO_ROOT_USER=minioadmin" -e "MINIO_ROOT_PASSWORD=some_password" -v "D:\minio_data:/data" quay.io/minio/minio server /data --console-address ":9001"
+```
+
+* Mailhog:
+```bash
+docker run -p 1025:1025 -p 8025:8025 --name mailhog-local mailhog/mailhog
+```
+
+* Redis:
+```bash
+docker run -d -p 6379:6379 --name redis-local redis:alpine
+```
 
 ## API Documentation
 

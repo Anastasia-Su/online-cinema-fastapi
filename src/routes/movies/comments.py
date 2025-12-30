@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
 from sqlalchemy import select, func, and_, delete, insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload, raiseload, selectinload, defaultload
 from typing import Optional
 
@@ -345,7 +346,7 @@ async def update_comment(
 
 
 @router.get(
-    "/{movie_id}/{comment_id}",
+    "/{movie_id}/comments/{comment_id}",
     response_model=CommentSchema,
     summary="Get comment details by ID",
     description=(
@@ -384,6 +385,7 @@ async def update_comment(
     },
 )
 async def get_comment_by_id(
+    movie_id: int,
     comment_id: int,
     db: AsyncSession = Depends(get_db),
 ) -> CommentSchema:
@@ -414,7 +416,10 @@ async def get_comment_by_id(
                 MovieCommentModel.replies.and_(MovieCommentModel.liked_by_users)
             ),
         )
-        .where(MovieCommentModel.id == comment_id)
+        .where(
+            MovieCommentModel.id == comment_id,
+            MovieCommentModel.movie_id == movie_id,
+        )
     )
 
     result = await db.execute(stmt)
@@ -518,18 +523,25 @@ async def like_comment(
     """
 
     comment = await db.get(MovieCommentModel, comment_id)
+    
     if not comment or comment.movie_id != movie_id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found"
         )
 
     stmt = (
-        insert(CommentLikeModel).values(user_id=user.id, comment_id=comment_id)
+        insert(CommentLikeModel)
+        .values(user_id=user.id, comment_id=comment_id)
         # .on_conflict_do_nothing()
     )
-
-    await db.execute(stmt)
-    await db.commit()
+    try:
+        await db.execute(stmt)
+        await db.commit()
+    except IntegrityError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You already liked this comment"
+        )
 
     send_comment_like_email.delay(
         email=str(comment.user.email),
@@ -553,6 +565,7 @@ async def like_comment(
     },
 )
 async def unlike_comment(
+    movie_id: int,
     comment_id: int,
     user: UserModel = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -567,6 +580,10 @@ async def unlike_comment(
     :raises HTTPException: 404 if like does not exist.
     """
 
+    comment = await db.get(MovieCommentModel, comment_id)
+    if not comment or comment.movie_id != movie_id:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    
     stmt = delete(CommentLikeModel).where(
         CommentLikeModel.c.user_id == user.id,
         CommentLikeModel.c.comment_id == comment_id,

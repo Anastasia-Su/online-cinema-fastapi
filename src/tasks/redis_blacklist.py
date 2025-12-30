@@ -12,8 +12,7 @@ async def get_redis() -> aioredis.Redis:
     global _redis
     settings = get_settings()
     if _redis is None:
-        _redis = aioredis.from_url(
-            # "redis://localhost:6379",  
+        _redis = aioredis.from_url( 
             settings.CELERY_BROKER_URL,
             decode_responses=True,
             encoding="utf-8",

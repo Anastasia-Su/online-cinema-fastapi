@@ -134,10 +134,12 @@ services:
     build: .
     container_name: celery_worker_movies
     command: >
-      celery
-      -A src.tasks.celery_app.celery_app
-      worker
-      --loglevel=info
+      celery 
+      -A src.tasks.celery_app 
+      worker 
+      -Q default,comment_notifications,maintenance 
+      --pool=solo 
+      -l info
     env_file:
       - .env
     depends_on:
