@@ -115,10 +115,7 @@ async def create_comment(
         parent_id=payload.parent_id,
     )
     db.add(comment)
-    await db.flush()
-    await db.refresh(comment)
-
-    # Validate parent comment belongs to same movie
+    
     if payload.parent_id:
         parent = await db.get(MovieCommentModel, payload.parent_id)
 
@@ -127,17 +124,25 @@ async def create_comment(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid parent comment"
             )
 
+    await db.flush()
+    await db.refresh(comment)
+    
+    if payload.parent_id:
         send_comment_reply_email.delay(
             email=str(parent.user.email),
             parent_preview=str(parent.content),
             current_preview=str(comment.content),
-            reply_link=f"http://127.0.0.1:8000/movies/{movie_id}/{comment.id}",
+            reply_link=f"http://127.0.0.1:8000/movies/{movie_id}/comments/{comment.id}",
         )
+        
+    await db.flush()
+    await db.refresh(comment)
 
     # Load user and likes
     result = await db.execute(
         select(MovieCommentModel)
         .options(
+            # selectinload(MovieCommentModel.user),
             selectinload(MovieCommentModel.liked_by_users),
             selectinload(
                 MovieCommentModel.replies.and_(MovieCommentModel.liked_by_users)
@@ -149,7 +154,6 @@ async def create_comment(
     await increment_counter(db, movie_id, "comment_count", +1)
     await db.commit()
 
-    # return await enrich_comment(comment, user.id, db)
     return enrich_comment_sync(comment, user.id)
 
 
@@ -523,15 +527,14 @@ async def like_comment(
     """
 
     comment = await db.get(MovieCommentModel, comment_id)
-    
+
     if not comment or comment.movie_id != movie_id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found"
         )
 
     stmt = (
-        insert(CommentLikeModel)
-        .values(user_id=user.id, comment_id=comment_id)
+        insert(CommentLikeModel).values(user_id=user.id, comment_id=comment_id)
         # .on_conflict_do_nothing()
     )
     try:
@@ -540,7 +543,7 @@ async def like_comment(
     except IntegrityError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You already liked this comment"
+            detail="You already liked this comment",
         )
 
     send_comment_like_email.delay(
@@ -583,7 +586,7 @@ async def unlike_comment(
     comment = await db.get(MovieCommentModel, comment_id)
     if not comment or comment.movie_id != movie_id:
         raise HTTPException(status_code=404, detail="Comment not found")
-    
+
     stmt = delete(CommentLikeModel).where(
         CommentLikeModel.c.user_id == user.id,
         CommentLikeModel.c.comment_id == comment_id,
