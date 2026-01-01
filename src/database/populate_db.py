@@ -42,7 +42,7 @@ else:
 
 fake = Faker()
 
-NUM_MOVIES = 10_000  # number of movies to add
+NUM_MOVIES = 500  # number of movies to add
 
 
 async def seed_movies(session: AsyncSession, num_movies: int = NUM_MOVIES) -> None:
