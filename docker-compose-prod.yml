@@ -42,7 +42,7 @@ services:
       - .env
     environment:
       - LOG_LEVEL=debug
-      - PYTHONPATH=/usr/src/fastapi
+      - PYTHONPATH=/usr/src/fastapi/src
       - WATCHFILES_FORCE_POLLING=true
     ports:
       - "8000:8000"
@@ -52,7 +52,7 @@ services:
       minio:
         condition: service_healthy
     volumes:
-      - ./src:/usr/src/fastapi
+      - ./src:/usr/src/fastapi/src
     networks:
       - movies_network
 
@@ -64,28 +64,23 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - ./src:/usr/src/fastapi
+      - ./src:/usr/src/fastapi/src
     env_file:
       - .env
     environment:
-      - PYTHONPATH=/usr/src/fastapi
+      - PYTHONPATH=/usr/src/fastapi/src
     networks:
       - movies_network
 
   mailhog:
-    restart: always
-    build:
-      context: .
-      dockerfile: ./docker/mailhog/Dockerfile
+    image: mailhog/mailhog:v1.0.1
     container_name: mailhog_movies
-    command: ["/bin/bash", "-c", "/commands/setup_mailhog_auth.sh && ~/go/bin/MailHog"]
+    restart: always
     ports:
       - "8025:8025"
       - "1025:1025"
     env_file:
       - .env
-    environment:
-      MH_AUTH_FILE: /mailhog.auth
     networks:
       - movies_network
 
@@ -119,6 +114,80 @@ services:
         condition: service_healthy
     env_file:
       - .env
+    networks:
+      - movies_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis_movies
+    ports:
+      - "6379:6379"   # optional, for local debugging
+    networks:
+      - movies_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  celery_worker:
+    build: .
+    container_name: celery_worker_movies
+    command: >
+      celery 
+      -A src.tasks.celery_app 
+      worker 
+      -Q default,comment_notifications,maintenance 
+      --pool=solo 
+      -l info
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    volumes:
+      - ./src:/usr/src/fastapi/src
+    environment:
+      - PYTHONPATH=/usr/src/fastapi/src
+    networks:
+      - movies_network
+
+  celery_beat:
+    build: .
+    container_name: celery_beat_movies
+    command: >
+      celery
+      -A src.tasks.celery_app.celery_app
+      beat
+      --loglevel=info
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    volumes:
+      - ./src:/usr/src/fastapi/src
+    environment:
+      - PYTHONPATH=/usr/src/fastapi/src
+    networks:
+      - movies_network
+
+  flower:
+    image: mher/flower
+    container_name: flower_movies
+    command:
+      - celery
+      - --broker=redis://redis:6379/0
+      - flower
+    ports:
+      - "5555:5555"
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - movies_network
 

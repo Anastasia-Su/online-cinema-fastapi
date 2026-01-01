@@ -191,10 +191,6 @@ services:
     networks:
       - movies_network
 
-
-
-
-
 volumes:
   postgres_movies_data:
     driver: local
