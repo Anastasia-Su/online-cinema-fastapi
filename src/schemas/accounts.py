@@ -1,0 +1,79 @@
+from pydantic import BaseModel, EmailStr, field_validator, ConfigDict
+
+from src.database import accounts_validators
+
+
+class BaseEmailPasswordSchema(BaseModel):
+    email: EmailStr
+    password: str
+
+    model_config: ConfigDict = ConfigDict(from_attributes=True)
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        return value.lower()
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        return accounts_validators.validate_password_strength(value)
+
+
+class UserRegistrationRequestSchema(BaseEmailPasswordSchema):
+    pass
+
+
+class PasswordResetRequestSchema(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetCompleteRequestSchema(BaseEmailPasswordSchema):
+    token: str
+
+
+class ChangePasswordRequestSchema(BaseModel):
+    old_password: str
+    new_password: str
+
+    model_config: ConfigDict = ConfigDict(from_attributes=True)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        return accounts_validators.validate_password_strength(value)
+
+
+class UserLoginRequestSchema(BaseEmailPasswordSchema):
+    pass
+
+
+class UserLoginResponseSchema(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+
+
+class UserRegistrationResponseSchema(BaseModel):
+    id: int
+    email: EmailStr
+
+    model_config: ConfigDict = ConfigDict(from_attributes=True)
+
+
+class UserActivationRequestSchema(BaseModel):
+    email: EmailStr
+    token: str
+
+
+class MessageResponseSchema(BaseModel):
+    message: str
+
+
+class TokenRefreshRequestSchema(BaseModel):
+    refresh_token: str
+
+
+class TokenRefreshResponseSchema(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
