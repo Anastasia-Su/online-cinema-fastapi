@@ -94,7 +94,9 @@ celery -A src.tasks.celery_app beat -l info
 ## Running with Docker
 
 ```bash
-docker-compose up --build
+docker compose -f docker-compose-prod.yml up -d --build
+or
+docker compose -f docker-compose-dev.yml up -d --build
 ```
 
 Services started:
