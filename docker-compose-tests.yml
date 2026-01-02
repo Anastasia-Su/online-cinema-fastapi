@@ -1,10 +1,22 @@
 services:
   web:
-    env_file:
-        - .env
+    # env_file:
+    #     - .env
 
     environment:
       - PYTHONPATH=/usr/src/fastapi
+      - ENVIRONMENT=testing
+      - EMAIL_HOST=mailhog_movies_test
+      - EMAIL_PORT=1025
+      - EMAIL_HOST_USER=testuser@mate.com
+      - EMAIL_HOST_PASSWORD=test_password
+      - EMAIL_USE_TLS=False
+      - MAILHOG_API_PORT=8025
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=some_password
+      - MINIO_HOST=minio-movies-test
+      - MINIO_PORT=9000
+      - MINIO_STORAGE=movies-storage
     build:
       context: .
       dockerfile: ./docker/tests/Dockerfile
@@ -41,8 +53,14 @@ services:
     ports:
       - "9000:9000"
       - "9001:9001"
-    env_file:
-        - .env
+    # env_file:
+    #     - .env
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=some_password
+      - MINIO_HOST=minio-movies-test
+      - MINIO_PORT=9000
+      - MINIO_STORAGE=movies-storage
    
     volumes:
       - minio_data_test:/data
@@ -63,8 +81,14 @@ services:
     depends_on:
       minio:
         condition: service_healthy
-    env_file:
-        - .env
+    # env_file:
+    #     - .env
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=some_password
+      - MINIO_HOST=minio-movies-test
+      - MINIO_PORT=9000
+      - MINIO_STORAGE=movies-storage
     networks:
       - movies_network_test
 
