@@ -22,6 +22,7 @@ from src.tasks.redis_blacklist import (
 )
 from ..utils import make_token, get_headers
 
+
 @pytest.mark.asyncio
 async def test_register_user_success(client, db_session):
     """
@@ -1254,9 +1255,8 @@ async def test_list_revoked_tokens(fake_redis):
 
     keys = await list_revoked_tokens(fake_redis)
     assert set(keys) == {"token1", "token2"}
-    
-    
-    
+
+
 @pytest.mark.parametrize(
     "role,expected_status",
     [
@@ -1266,18 +1266,20 @@ async def test_list_revoked_tokens(fake_redis):
     ],
 )
 @pytest.mark.asyncio(loop_scope="session")
-async def test_get_users_default_parameters(client, db_session, jwt_manager, role, expected_status):
+async def test_get_users_default_parameters(
+    client, db_session, jwt_manager, role, expected_status
+):
     """
     Test the `/users/` endpoint with default pagination parameters.
     """
-    
+
     if role == "admin":
         group_id = 3
     elif role == "moderator":
         group_id = 2
     else:  # "user"
         group_id = 1
-        
+
     # stmt = select(UserModel).where(UserModel.group_id == group_id)
     # result = await db_session.execute(stmt)
     # user = result.scalars().first()
@@ -1285,17 +1287,13 @@ async def test_get_users_default_parameters(client, db_session, jwt_manager, rol
 
     # headers = await make_token(user, jwt_manager)
     headers = await get_headers(db_session, jwt_manager, group_id)
-    
+
     response = await client.get("/moderator/users/", headers=headers)
     assert (
         response.status_code == expected_status
     ), f"Role '{role}' expected {expected_status}, got {response.status_code}, respp: {response}"
 
-
     response_data = response.json()
 
     if group_id in [2, 3]:
-        assert (
-            len(response_data) == 3
-        ), "Expected 3 users in the response"
-
+        assert len(response_data) == 3, "Expected 3 users in the response"
