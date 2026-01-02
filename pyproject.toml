@@ -41,6 +41,7 @@ dependencies = [
     "flake8-annotations (>=3.2.0,<4.0.0)",
     "bs4 (>=0.0.2,<0.0.3)",
     "gunicorn (>=23.0.0,<24.0.0)",
+    "httpx (>=0.28.1,<0.29.0)",
 ]
 
 
@@ -52,4 +53,9 @@ build-backend = "poetry.core.masonry.api"
 [tool.pytest.ini_options]
 markers = [
     "no_seed: skip database seeding for this test",
+]
+
+[dependency-groups]
+dev = [
+    "httpx (>=0.28.1,<0.29.0)"
 ]
