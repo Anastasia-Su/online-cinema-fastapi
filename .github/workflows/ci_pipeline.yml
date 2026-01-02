@@ -8,6 +8,48 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      # PostgreSQL
+      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+      POSTGRES_DB_PORT: ${{ secrets.POSTGRES_DB_PORT }}
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
+
+      # pgAdmin
+      PGADMIN_DEFAULT_EMAIL: ${{ secrets.PGADMIN_DEFAULT_EMAIL }}
+      PGADMIN_DEFAULT_PASSWORD: ${{ secrets.PGADMIN_DEFAULT_PASSWORD }}
+
+      # JWT keys
+      SECRET_KEY_ACCESS: ${{ secrets.SECRET_KEY_ACCESS }}
+      SECRET_KEY_REFRESH: ${{ secrets.SECRET_KEY_REFRESH }}
+      JWT_SIGNING_ALGORITHM: ${{ secrets.JWT_SIGNING_ALGORITHM }}
+
+      # MailHog
+      MAILHOG_USER: ${{ secrets.MAILHOG_USER }}
+      MAILHOG_PASSWORD: ${{ secrets.MAILHOG_PASSWORD }}
+      EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
+      EMAIL_PORT: ${{ secrets.EMAIL_PORT }}
+      EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
+      EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
+      EMAIL_USE_TLS: ${{ secrets.EMAIL_USE_TLS }}
+
+      # MinIO
+      MINIO_ROOT_USER: ${{ secrets.MINIO_ROOT_USER }}
+      MINIO_ROOT_PASSWORD: ${{ secrets.MINIO_ROOT_PASSWORD }}
+      MINIO_HOST: ${{ secrets.MINIO_HOST }}
+      MINIO_PORT: ${{ secrets.MINIO_PORT }}
+      MINIO_STORAGE: ${{ secrets.MINIO_STORAGE }}
+
+      # Celery
+      CELERY_BROKER_URL: ${{ secrets.CELERY_BROKER_URL }}
+      CELERY_RESULT_BACKEND: ${{ secrets.CELERY_RESULT_BACKEND }}
+
+      # Stripe
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+      STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+      STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+      
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -29,13 +71,51 @@ jobs:
 
   test-e2e:
     runs-on: ubuntu-latest
+    env:
+      # PostgreSQL
+      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+      POSTGRES_DB_PORT: ${{ secrets.POSTGRES_DB_PORT }}
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
+
+      # pgAdmin
+      PGADMIN_DEFAULT_EMAIL: ${{ secrets.PGADMIN_DEFAULT_EMAIL }}
+      PGADMIN_DEFAULT_PASSWORD: ${{ secrets.PGADMIN_DEFAULT_PASSWORD }}
+
+      # JWT keys
+      SECRET_KEY_ACCESS: ${{ secrets.SECRET_KEY_ACCESS }}
+      SECRET_KEY_REFRESH: ${{ secrets.SECRET_KEY_REFRESH }}
+      JWT_SIGNING_ALGORITHM: ${{ secrets.JWT_SIGNING_ALGORITHM }}
+
+      # MailHog
+      MAILHOG_USER: ${{ secrets.MAILHOG_USER }}
+      MAILHOG_PASSWORD: ${{ secrets.MAILHOG_PASSWORD }}
+      EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
+      EMAIL_PORT: ${{ secrets.EMAIL_PORT }}
+      EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
+      EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
+      EMAIL_USE_TLS: ${{ secrets.EMAIL_USE_TLS }}
+
+      # MinIO
+      MINIO_ROOT_USER: ${{ secrets.MINIO_ROOT_USER }}
+      MINIO_ROOT_PASSWORD: ${{ secrets.MINIO_ROOT_PASSWORD }}
+      MINIO_HOST: ${{ secrets.MINIO_HOST }}
+      MINIO_PORT: ${{ secrets.MINIO_PORT }}
+      MINIO_STORAGE: ${{ secrets.MINIO_STORAGE }}
+
+      # Celery
+      CELERY_BROKER_URL: ${{ secrets.CELERY_BROKER_URL }}
+      CELERY_RESULT_BACKEND: ${{ secrets.CELERY_RESULT_BACKEND }}
+
+      # Stripe
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+      STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+      STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
-      - name: Create .env
-        run: |
-          printf "%s" "${{ secrets.APP_ENV_CONTENTS }}" > .env
 
       - name: Start Docker Compose and wait for completion
         run: |
