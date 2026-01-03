@@ -73,8 +73,9 @@ class TestingSettings(Settings):
     # S3_STORAGE_ENDPOINT: str = "http://localhost:9000"
     # CELERY_BROKER_URL: str = "memory://"
     # CELERY_RESULT_BACKEND: str = "memory://"
-    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
-    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/1"
+    # CELERY_BROKER_URL = "redis://redis_movies_test:6379/0"
+    # CELERY_RESULT_BACKEND = "redis://redis_movies_test:6379/1"
+
 
     SECRET_KEY_ACCESS: str = "SECRET_KEY_ACCESS"
     SECRET_KEY_REFRESH: str = "SECRET_KEY_REFRESH"
