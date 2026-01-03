@@ -68,7 +68,7 @@ class Settings(BaseAppSettings):
     JWT_SIGNING_ALGORITHM: str = os.getenv("JWT_SIGNING_ALGORITHM", "HS256")
 
 
-class TestingSettings(Settings):
+class TestingSettings(BaseAppSettings):
     PATH_TO_DB: str = ":memory:"
 
     SECRET_KEY_ACCESS: str = "SECRET_KEY_ACCESS"
