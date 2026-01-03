@@ -59,10 +59,9 @@ from src.database.populate_db import (
 )
 
 settings = get_settings()
-if settings.ENVIRONMENT == "testing":
-    # patch Celery tasks to run synchronously (do nothing)
-    send_comment_reply_email.delay = lambda *a, **k: None
-    send_comment_like_email.delay = lambda *a, **k: None
+
+send_comment_reply_email.delay = lambda *a, **k: None
+send_comment_like_email.delay = lambda *a, **k: None
     
     
 @pytest_asyncio.fixture(scope="function", autouse=True)
