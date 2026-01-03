@@ -38,7 +38,13 @@ AsyncSessionLocal = sessionmaker(
 
 # Sync engine for Alembic migrations
 
-sync_engine = create_engine(DATABASE_URL_SYNC, echo=False)
+if getattr(settings, "ENVIRONMENT", "production") == "testing":
+    # Skip Postgres engine creation for tests
+    sync_engine = None
+else:
+    
+
+    sync_engine = create_engine(DATABASE_URL_SYNC, echo=False)
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
