@@ -36,15 +36,40 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3          
 
-      - name: Start Docker Compose and wait for completion
+      # - name: Start Docker Compose and wait for completion
+      #   run: |
+      #     docker compose -f docker-compose-tests.yml up --build --abort-on-container-exit --exit-code-from web
+
+      # - name: Show web logs
+      #   run: docker compose -f docker-compose-tests.yml logs web
+
+      # - name: Save logs
+      #   run: docker-compose -f docker-compose-tests.yml logs > logs.txt
+
+      - name: Start Docker Compose (detached)
         run: |
-          docker compose -f docker-compose-tests.yml up --build --abort-on-container-exit --exit-code-from backend_movies_test
+          docker compose -f docker-compose-tests.yml up --build -d
 
-      - name: Show web logs
-        run: docker compose -f docker-compose-tests.yml logs web
+      - name: Follow logs in background
+        run: |
+          docker compose -f docker-compose-tests.yml logs -f &
 
-      - name: Save logs
-        run: docker-compose -f docker-compose-tests.yml logs > logs.txt
+      - name: Wait for web service to finish
+        run: |
+          echo "Waiting for backend_movies_test to finish..."
+          # wait until container exits
+          while [ "$(docker inspect -f '{{.State.Running}}' backend_movies_test)" == "true" ]; do
+            sleep 2
+          done
+          # get exit code
+          EXIT_CODE=$(docker inspect backend_movies_test --format='{{.State.ExitCode}}')
+          echo "Web service exited with code $EXIT_CODE"
+          # save logs
+          docker compose -f docker-compose-tests.yml logs > logs.txt
+          # stop all services
+          docker compose -f docker-compose-tests.yml down
+          # exit with test code
+          exit $EXIT_CODE
 
       - uses: actions/upload-artifact@v4
         with:
