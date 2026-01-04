@@ -2,6 +2,7 @@ services:
   web:
     environment:
       - PYTHONPATH=/usr/src/fastapi
+      - PYTHONUNBUFFERED=1
       - ENVIRONMENT=testing
       - EMAIL_HOST=mailhog_movies_test
       - EMAIL_PORT=1025
@@ -19,7 +20,7 @@ services:
       dockerfile: ./docker/tests/Dockerfile
     container_name: backend_movies_test
     command: [ "pytest", "-c", "/usr/src/config/pytest.ini",
-               "-m", "e2e", "--maxfail=5", "--disable-warnings", "-v", "--tb=short"]
+               "-m", "e2e", "--maxfail=5", "--disable-warnings", "-v", "--tb=short", "-s"]
     
     depends_on:
       mailhog:
