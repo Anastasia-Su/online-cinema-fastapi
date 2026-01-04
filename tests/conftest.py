@@ -1,6 +1,7 @@
 import os
 import asyncio
 from fastapi.testclient import TestClient
+from asgi_lifespan import LifespanManager
 
 os.environ["ENVIRONMENT"] = "testing"
 from src.tasks.redis_blacklist import get_redis
@@ -211,10 +212,16 @@ async def e2e_client():
 
     This client is available at the session scope.
     """
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as async_client:
-        yield async_client
+    # async with AsyncClient(
+    #     transport=ASGITransport(app=app), base_url="http://test"
+    # ) as async_client:
+    #     yield async_client
+    async with LifespanManager(app):
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://test"
+        ) as client:
+            yield client
 
 
 @pytest_asyncio.fixture(scope="function")
