@@ -18,7 +18,8 @@ services:
       context: .
       dockerfile: ./docker/tests/Dockerfile
     container_name: backend_movies_test
-    command: "pytest -c /usr/src/config/pytest.ini -m e2e --maxfail=5 --disable-warnings -v --tb=short"
+    command: [ "pytest", "-c", "/usr/src/config/pytest.ini",
+               "-m", "e2e", "--maxfail=5", "--disable-warnings", "-v", "--tb=short"]
     
     depends_on:
       mailhog:

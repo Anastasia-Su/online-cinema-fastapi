@@ -40,6 +40,17 @@ jobs:
         run: |
           docker compose -f docker-compose-tests.yml up --build --abort-on-container-exit --exit-code-from web
 
+      - name: Show web logs
+        run: docker compose -f docker-compose-tests.yml logs web
+
+      - name: Save logs
+        run: docker-compose -f docker-compose-tests.yml logs > logs.txt
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: web-logs
+          path: logs.txt
+
       - name: Cleanup
         if: always()
         run: |
