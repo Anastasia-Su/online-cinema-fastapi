@@ -1,8 +1,5 @@
 services:
   web:
-    # env_file:
-    #     - .env
-
     environment:
       - PYTHONPATH=/usr/src/fastapi
       - ENVIRONMENT=testing
@@ -21,15 +18,15 @@ services:
       context: .
       dockerfile: ./docker/tests/Dockerfile
     container_name: backend_movies_test
-    command: "pytest -c /usr/src/config/pytest.ini -m e2e --maxfail=5 --disable-warnings -v --tb=short; tail -f /dev/null"
+    command: "pytest -c /usr/src/config/pytest.ini -m e2e --maxfail=5 --disable-warnings -v --tb=short"
     
     depends_on:
       mailhog:
         condition: service_started
       minio:
         condition: service_healthy
-      redis:
-        condition: service_healthy
+      # redis:
+      #   condition: service_healthy
 
     volumes:
       - ./src:/usr/src/fastapi/src
@@ -81,8 +78,6 @@ services:
     depends_on:
       minio:
         condition: service_healthy
-    # env_file:
-    #     - .env
     environment:
       - MINIO_ROOT_USER=minioadmin
       - MINIO_ROOT_PASSWORD=some_password
@@ -92,44 +87,18 @@ services:
     networks:
       - movies_network_test
 
-  redis:
-    image: redis:7-alpine
-    container_name: redis_movies_test
-    ports:
-      - "6379:6379" # optional
-    networks:
-      - movies_network_test
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  celery_worker:
-    # env_file:
-    #     - .env
-    build:
-      context: .
-      dockerfile: ./docker/tests/Dockerfile
-    container_name: celery_worker_movies_test
-    command: >
-      celery
-      -A src.tasks.celery_app.celery_app
-      worker
-      --loglevel=info
-      --pool=solo
-    environment:
-      - PYTHONPATH=/usr/src/fastapi
-      - ENVIRONMENT=testing
-    depends_on:
-      redis:
-        condition: service_healthy
-    volumes:
-      - ./src:/usr/src/fastapi/src
-      - ./tests:/usr/src/fastapi/tests
-    networks:
-      - movies_network_test
-
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: redis_movies_test
+  #   ports:
+  #     - "6379:6379" # optional
+  #   networks:
+  #     - movies_network_test
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
 
 volumes:
   minio_data_test:
