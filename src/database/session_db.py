@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -13,16 +14,21 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 
 settings = get_settings()
+is_testing = os.getenv("ENVIRONMENT") == "testing"
 
+if is_testing:
+    DATABASE_URL_ASYNC = f"sqlite+aiosqlite:///{settings.PATH_TO_DB}"
+    DATABASE_URL_SYNC = f"sqlite:///{settings.PATH_TO_DB}"
+else:
 
-DATABASE_URL_ASYNC = (
-    f"postgresql+asyncpg://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@"
-    f"{settings.POSTGRES_HOST}:{settings.POSTGRES_DB_PORT}/{settings.POSTGRES_DB}"
-)
+    DATABASE_URL_ASYNC = (
+        f"postgresql+asyncpg://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@"
+        f"{settings.POSTGRES_HOST}:{settings.POSTGRES_DB_PORT}/{settings.POSTGRES_DB}"
+    )
 
-DATABASE_URL_SYNC = DATABASE_URL_ASYNC.replace(
-    "postgresql+asyncpg", "postgresql+psycopg2"
-)
+    DATABASE_URL_SYNC = DATABASE_URL_ASYNC.replace(
+        "postgresql+asyncpg", "postgresql+psycopg2"
+    )
 
 
 async_engine = create_async_engine(DATABASE_URL_ASYNC, echo=False)
@@ -36,15 +42,7 @@ AsyncSessionLocal = sessionmaker(
 )
 
 
-# Sync engine for Alembic migrations
-
-if getattr(settings, "ENVIRONMENT", "production") == "testing":
-    # Skip Postgres engine creation for tests
-    sync_engine = None
-else:
-    
-
-    sync_engine = create_engine(DATABASE_URL_SYNC, echo=False)
+sync_engine = create_engine(DATABASE_URL_SYNC, echo=False)
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
