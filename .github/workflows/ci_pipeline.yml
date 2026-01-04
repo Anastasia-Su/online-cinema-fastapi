@@ -46,7 +46,7 @@ jobs:
       - name: Save logs
         run: docker-compose -f docker-compose-tests.yml logs > logs.txt
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: web-logs
           path: logs.txt
