@@ -9,6 +9,7 @@ async def make_token(user, jwt_manager):
     access = jwt_manager.create_access_token({"user_id": user.id})
     return {"Authorization": f"Bearer {access}"}
 
+
 async def get_headers(db_session, jwt_manager, group_id: int = 1):
     stmt = select(UserModel).where(UserModel.group_id == group_id)
 
@@ -18,6 +19,7 @@ async def get_headers(db_session, jwt_manager, group_id: int = 1):
 
     headers = await make_token(user, jwt_manager)
     return headers
+
 
 class FakeRedis:
     def __init__(self):
@@ -32,7 +34,7 @@ class FakeRedis:
     async def delete(self, key):
         if key in self.store:
             del self.store[key]
-            
+
     async def keys(self, pattern):
         # Very simple pattern support for "revoked:*"
         if pattern == "revoked:*":

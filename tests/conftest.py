@@ -1,9 +1,14 @@
 import os
 import asyncio
 from fastapi.testclient import TestClient
+from asgi_lifespan import LifespanManager
 
 os.environ["ENVIRONMENT"] = "testing"
 from src.tasks.redis_blacklist import get_redis
+from src.tasks.comment_notifications import (
+    send_comment_reply_email,
+    send_comment_like_email,
+)
 
 from src.database.session_sqlite import AsyncSQLiteSessionLocal
 
@@ -38,42 +43,8 @@ import pytest
 from src.database.session_sqlite import sqlite_engine
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-# conftest.py — THE FINAL, BULLETPROOF db_session (copy-paste this)
-
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 from .utils import FakeRedis
-
-# @pytest_asyncio.fixture
-# async def db_session():
-#     """
-#     Perfect, bulletproof AsyncSession for tests:
-#     - Uses the same engine as the app
-#     - One transaction per test
-#     - Auto rollback
-#     - NO "closed transaction"
-#     - NO "different loop"
-#     - NO StopAsyncIteration
-#     """
-#     from src.database.session_sqlite import sqlite_engine
-
-#     AsyncSessionLocal = async_sessionmaker(
-#         bind=sqlite_engine,
-#         expire_on_commit=False,
-#         class_=AsyncSession,
-#     )
-
-#     session = AsyncSessionLocal()
-
-#     # Start transaction
-#     await session.begin()
-
-#     try:
-#         yield session
-#     finally:
-#         # Rollback and close — this fixes "closed transaction" error
-#         await session.rollback()
-#         await session.close()
-
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "e2e: End-to-end tests")
@@ -88,7 +59,12 @@ from src.database.populate_db import (
     seed_orders,
 )
 
+settings = get_settings()
 
+send_comment_reply_email.delay = lambda *a, **k: None
+send_comment_like_email.delay = lambda *a, **k: None
+    
+    
 @pytest_asyncio.fixture(scope="function", autouse=True)
 async def reset_db(request):
     """
@@ -236,10 +212,16 @@ async def e2e_client():
 
     This client is available at the session scope.
     """
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as async_client:
-        yield async_client
+    # async with AsyncClient(
+    #     transport=ASGITransport(app=app), base_url="http://test"
+    # ) as async_client:
+    #     yield async_client
+    async with LifespanManager(app):
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://test"
+        ) as client:
+            yield client
 
 
 @pytest_asyncio.fixture(scope="function")

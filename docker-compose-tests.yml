@@ -1,23 +1,34 @@
 services:
   web:
-    env_file:
-        - .env
-
     environment:
       - PYTHONPATH=/usr/src/fastapi
+      - PYTHONUNBUFFERED=1
+      - ENVIRONMENT=testing
+      - EMAIL_HOST=mailhog_movies_test
+      - EMAIL_PORT=1025
+      - EMAIL_HOST_USER=testuser@mate.com
+      - EMAIL_HOST_PASSWORD=test_password
+      - EMAIL_USE_TLS=False
+      - MAILHOG_API_PORT=8025
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=some_password
+      - MINIO_HOST=minio-movies-test
+      - MINIO_PORT=9000
+      - MINIO_STORAGE=movies-storage
     build:
       context: .
       dockerfile: ./docker/tests/Dockerfile
     container_name: backend_movies_test
-    command: "pytest -c /usr/src/config/pytest.ini -m e2e --maxfail=5 --disable-warnings -v --tb=short; tail -f /dev/null"
+    command: [ "pytest", "-c", "/usr/src/config/pytest.ini",
+               "-m", "e2e", "--maxfail=5", "--disable-warnings", "-v", "--tb=short", "-s"]
     
     depends_on:
       mailhog:
         condition: service_started
       minio:
         condition: service_healthy
-      redis:
-        condition: service_healthy
+      # redis:
+      #   condition: service_healthy
 
     volumes:
       - ./src:/usr/src/fastapi/src
@@ -41,8 +52,14 @@ services:
     ports:
       - "9000:9000"
       - "9001:9001"
-    env_file:
-        - .env
+    # env_file:
+    #     - .env
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=some_password
+      - MINIO_HOST=minio-movies-test
+      - MINIO_PORT=9000
+      - MINIO_STORAGE=movies-storage
    
     volumes:
       - minio_data_test:/data
@@ -63,49 +80,27 @@ services:
     depends_on:
       minio:
         condition: service_healthy
-    env_file:
-        - .env
-    networks:
-      - movies_network_test
-
-  redis:
-    image: redis:7-alpine
-    container_name: redis_movies_test
-    ports:
-      - "6379:6379" # optional
-    networks:
-      - movies_network_test
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  celery_worker:
-    env_file:
-        - .env
-    build:
-      context: .
-      dockerfile: ./docker/tests/Dockerfile
-    container_name: celery_worker_movies_test
-    command: >
-      celery
-      -A src.tasks.celery_app.celery_app
-      worker
-      --loglevel=info
-      --pool=solo
     environment:
-      - PYTHONPATH=/usr/src/fastapi
-      - ENVIRONMENT=testing
-    depends_on:
-      redis:
-        condition: service_healthy
-    volumes:
-      - ./src:/usr/src/fastapi/src
-      - ./tests:/usr/src/fastapi/tests
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=some_password
+      - MINIO_HOST=minio-movies-test
+      - MINIO_PORT=9000
+      - MINIO_STORAGE=movies-storage
     networks:
       - movies_network_test
 
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: redis_movies_test
+  #   ports:
+  #     - "6379:6379" # optional
+  #   networks:
+  #     - movies_network_test
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
 
 volumes:
   minio_data_test:

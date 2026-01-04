@@ -99,9 +99,7 @@ async def test_create_user_profile_with_fake_s3(
         ),
     ],
 )
-async def test_create_user_profile_invalid_auth(
-    client, headers, expected_status
-):
+async def test_create_user_profile_invalid_auth(client, headers, expected_status):
     """
     Test profile creation with missing or incorrectly formatted Authorization header.
 
@@ -118,7 +116,6 @@ async def test_create_user_profile_invalid_auth(
     assert (
         response.status_code == expected_status
     ), f"Expected {expected_status}, got {response.status_code}"
-   
 
 
 @pytest.mark.asyncio
@@ -155,7 +152,6 @@ async def test_create_user_profile_expired_token(client, jwt_manager):
     response = await client.post(profile_url, headers=headers, files=files)
 
     assert response.status_code == 401, f"Expected 401, got {response.status_code}"
-
 
 
 @pytest.mark.asyncio
@@ -305,7 +301,7 @@ async def test_user_cannot_create_another_user_profile(
 
     response = await client.post(profile_url, headers=headers, files=files)
     assert response.status_code == 403, f"Expected 403, got {response.status_code}"
-    
+
     stmt_profile = select(UserProfileModel).where(UserProfileModel.user_id == user_2.id)
     result_profile = await db_session.execute(stmt_profile)
     profile_in_db = result_profile.scalars().first()
@@ -518,7 +514,6 @@ async def test_profile_creation_invalid_name(
     response = await client.post(profile_url, headers=headers, files=files)
 
     assert response.status_code == 422, f"Expected 422, got {response.status_code}"
-    
 
 
 @pytest.mark.asyncio
@@ -546,7 +541,6 @@ async def test_profile_creation_invalid_avatar_format(client, jwt_manager):
     response = await client.post(profile_url, headers=headers, files=files)
 
     assert response.status_code == 422, f"Expected 422, got {response.status_code}"
-   
 
 
 @pytest.mark.asyncio
@@ -578,7 +572,6 @@ async def test_profile_creation_avatar_too_large(db_session, client, jwt_manager
 
     response = await client.post(profile_url, headers=headers, files=files)
     assert response.status_code == 422, f"Expected 422, got {response.status_code}"
-   
 
 
 @pytest.mark.asyncio
@@ -606,7 +599,6 @@ async def test_profile_creation_invalid_gender(client, jwt_manager):
     response = await client.post(profile_url, headers=headers, files=files)
 
     assert response.status_code == 422, f"Expected 422, got {response.status_code}"
-    
 
 
 @pytest.mark.asyncio

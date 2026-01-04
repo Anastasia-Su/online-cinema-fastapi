@@ -8,6 +8,7 @@ from src.database import (
 )
 from ..utils import get_headers
 
+
 @pytest.mark.asyncio
 async def test_create_comment(client, db_session, jwt_manager):
     headers = await get_headers(db_session, jwt_manager)
@@ -119,8 +120,8 @@ async def test_get_movie_comments(client, db_session, jwt_manager):
     assert len(data) == 1
     assert data[0]["content"] == "Top comment"
     assert len(data[0]["replies"]) == 1
-    
-    
+
+
 @pytest.mark.asyncio
 async def test_get_comment_by_id(client, db_session, jwt_manager):
     headers = await get_headers(db_session, jwt_manager)
@@ -167,6 +168,7 @@ async def test_update_comment(client, db_session, jwt_manager):
 
     assert resp.status_code == 200
     assert resp.json()["content"] == "Updated content"
+
 
 @pytest.mark.asyncio
 async def test_update_comment_not_author(client, db_session, jwt_manager):
@@ -245,6 +247,7 @@ async def test_like_comment(client, db_session, jwt_manager):
     row = (await db_session.execute(stmt)).first()
     assert row is not None
 
+
 @pytest.mark.asyncio
 async def test_like_comment_twice(client, db_session, jwt_manager):
     headers = await get_headers(db_session, jwt_manager)
@@ -297,6 +300,7 @@ async def test_unlike_comment(client, db_session, jwt_manager):
 
     assert resp.status_code == 204
 
+
 @pytest.mark.asyncio
 async def test_unlike_comment_not_exists(client, db_session, jwt_manager):
     headers = await get_headers(db_session, jwt_manager)
@@ -307,6 +311,3 @@ async def test_unlike_comment_not_exists(client, db_session, jwt_manager):
     )
 
     assert resp.status_code == 404
-
-
-

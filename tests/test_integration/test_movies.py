@@ -4,7 +4,13 @@ import pytest
 from sqlalchemy import select, func
 from sqlalchemy.orm import joinedload
 
-from src.database import MovieModel, UserModel, OrderItemModel, OrderModel, OrderStatusEnum
+from src.database import (
+    MovieModel,
+    UserModel,
+    OrderItemModel,
+    OrderModel,
+    OrderStatusEnum,
+)
 
 from ..utils import make_token, get_headers
 
@@ -439,7 +445,6 @@ async def test_post_movie_access_control(
     else:  # "user"
         group_id = 1
 
-    
     headers = await get_headers(db_session, jwt_manager, group_id)
 
     payload = {
@@ -472,7 +477,6 @@ async def test_post_movie_duplicate_error(client, db_session, jwt_manager):
     results in a 409 conflict error.
     """
 
-
     headers = await get_headers(db_session, jwt_manager, 2)
     payload = {
         "name": "Name",
@@ -502,11 +506,11 @@ async def test_delete_movie_success(client, db_session, jwt_manager):
     """
     Test the `/movies/{movie_id}/` endpoint for successful movie deletion.
     """
-    
+
     headers = await get_headers(db_session, jwt_manager, 2)
 
     response = await client.delete(f"/moderator/movies/5/", headers=headers)
-    
+
     assert (
         response.status_code == 204
     ), f"Expected status code 204, but got {response.status_code}"
@@ -524,7 +528,6 @@ async def test_delete_movie_not_found(client, db_session, jwt_manager):
     """
     non_existent_id = 99999
 
- 
     headers = await get_headers(db_session, jwt_manager, 2)
 
     response = await client.delete(
@@ -569,7 +572,7 @@ async def test_delete_movie_already_ordered(client, db_session, jwt_manager):
     db_session.add(order_item)
     await db_session.commit()
 
-    headers = await get_headers(db_session, jwt_manager, 2) 
+    headers = await get_headers(db_session, jwt_manager, 2)
 
     response = await client.delete(
         f"/moderator/movies/{movie.id}/",
@@ -597,7 +600,6 @@ async def test_update_movie_success(client, db_session, jwt_manager):
 
     movie_id = movie.id
 
-   
     headers = await get_headers(db_session, jwt_manager, 2)
     update_data = {
         "name": "Updated Movie Name",

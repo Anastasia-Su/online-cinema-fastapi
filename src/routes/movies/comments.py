@@ -115,7 +115,7 @@ async def create_comment(
         parent_id=payload.parent_id,
     )
     db.add(comment)
-    
+
     if payload.parent_id:
         parent = await db.get(MovieCommentModel, payload.parent_id)
 
@@ -126,7 +126,7 @@ async def create_comment(
 
     await db.flush()
     await db.refresh(comment)
-    
+
     if payload.parent_id:
         send_comment_reply_email.delay(
             email=str(parent.user.email),
@@ -134,7 +134,7 @@ async def create_comment(
             current_preview=str(comment.content),
             reply_link=f"http://127.0.0.1:8000/movies/{movie_id}/comments/{comment.id}",
         )
-        
+
     await db.flush()
     await db.refresh(comment)
 

@@ -10,7 +10,7 @@ handle_error() {
 }
 
 # Navigate to the application directory
-cd /home/ubuntu/src/online_cinema || handle_error "Failed to navigate to the application directory."
+cd /home/ubuntu/online-cinema-fastapi || handle_error "Failed to navigate to the application directory."
 
 # Fetch the latest changes from the remote repository
 echo "Fetching the latest changes from the remote repository..."
@@ -26,6 +26,9 @@ git fetch origin --tags || handle_error "Failed to fetch tags from the 'origin' 
 
 # Build and run Docker containers with Docker Compose v2
 docker compose -f docker-compose-prod.yml up -d --build || handle_error "Failed to build and run Docker containers using docker-compose-prod.yml."
+
+# Clean up only stopped containers, dangling images, and unused networks
+docker system prune -f || handle_error "Failed to clean up Docker artifacts."
 
 # Print a success message upon successful deployment
 echo "Deployment completed successfully."
