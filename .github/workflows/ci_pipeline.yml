@@ -38,7 +38,7 @@ jobs:
 
       - name: Start Docker Compose and wait for completion
         run: |
-          docker compose -f docker-compose-tests.yml up --build --abort-on-container-failure --exit-code-from web --attach-dependencies
+          docker compose -f docker-compose-tests.yml up --build --abort-on-container-exit --exit-code-from backend_movies_test
 
       - name: Show web logs
         run: docker compose -f docker-compose-tests.yml logs web
