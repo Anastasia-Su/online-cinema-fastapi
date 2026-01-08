@@ -39,7 +39,7 @@ def swagger_auth(credentials: HTTPBasicCredentials = Depends(security)):
 
     if not user or not password:
         print("WARNING: SWAGGER_USER or SWAGGER_PASSWORD not set - allowing access")
-        return  # remove this if you always want protection
+        return  
 
     if not (
         secrets.compare_digest(credentials.username, user)
