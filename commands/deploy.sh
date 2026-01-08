@@ -32,20 +32,8 @@ echo "Stopping old containers..."
 docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" down --remove-orphans || handle_error "Failed to stop old containers"
 
 echo "Removing old containers to avoid name conflicts..."
-docker rm -f \
-  backend_movies \
-  mailhog_movies \
-  redis_movies \
-  postgres_movies \
-  minio-movies \
-  celery_worker_movies \
-  celery_beat_movies \
-  flower_movies \
-  alembic_migrator_movies \
-  pgadmin_movies \
-  minio_mc_movies \
-  || true
-  
+docker ps -a --filter "name=${PROJECT_NAME}_" --format "{{.Names}}" | xargs -r docker rm -f
+
 echo "Building and starting containers..."
 docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" up -d --build || handle_error "Failed to build and run containers"
 
