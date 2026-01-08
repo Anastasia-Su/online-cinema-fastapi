@@ -9,8 +9,12 @@ handle_error() {
     exit 1
 }
 
+APP_DIR="/home/ubuntu/online-cinema-fastapi"
+COMPOSE_FILE="docker-compose-prod.yml"
+PROJECT_NAME="online_cinema"
+
 # Navigate to the application directory
-cd /home/ubuntu/online-cinema-fastapi || handle_error "Failed to navigate to the application directory."
+cd "$APP_DIR" || handle_error "Failed to navigate to the application directory."
 
 # Fetch the latest changes from the remote repository
 echo "Fetching the latest changes from the remote repository..."
@@ -24,11 +28,14 @@ git reset --hard origin/main || handle_error "Failed to reset the local reposito
 echo "Fetching tags from the remote repository..."
 git fetch origin --tags || handle_error "Failed to fetch tags from the 'origin' remote."
 
-# Build and run Docker containers with Docker Compose v2
-docker compose -f docker-compose-prod.yml up -d --build || handle_error "Failed to build and run Docker containers using docker-compose-prod.yml."
+echo "Stopping old containers..."
+docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" down --remove-orphans || handle_error "Failed to stop old containers"
 
-# Clean up only stopped containers, dangling images, and unused networks
-docker system prune -f || handle_error "Failed to clean up Docker artifacts."
+echo "Building and starting containers..."
+docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" up -d --build || handle_error "Failed to build and run containers"
+
+echo "Cleaning dangling images..."
+docker image prune -f || handle_error "Failed to clean dangling images"
 
 # Print a success message upon successful deployment
 echo "Deployment completed successfully."
