@@ -1,6 +1,6 @@
 # Movie Store Backend API
 
-A fully asynchronous backend API for an online movie store built with **FastAPI**, **SQLAlchemy (async)**, **PostgreSQL**, **Redis**, **Celery**, and **Docker**. The project supports movie browsing, ratings, likes, favorites, carts, orders, payments, authentication, and role-based access control.
+A fully asynchronous backend API for an online movie store built with **FastAPI**, **SQLAlchemy (async)**, **PostgreSQL**, **Redis**, **Celery**, **Stripe**, and **Docker**. The project supports movie browsing, ratings, likes, favorites, carts, orders, payments, authentication, and role-based access control.
 
 ## Installing / Getting started
 * Run: 
@@ -114,6 +114,12 @@ API will be available at:
 http://localhost:8000
 ```
 
+Deployed API is available at:
+
+```
+http://3.69.251.148:8000
+```
+
 ### docker/
 Contains Dockerfiles for various services used in the project, facilitating containerization and orchestration.
 
@@ -171,9 +177,3 @@ tests/test_e2e/
 * **User**: browse, rate, comment, purchase
 * **Moderator**: view users, perform CRUD on movies
 * **Admin**: full access
-
-
-## Links
-* DockerHub: 
-
-
