@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
@@ -9,7 +9,7 @@ class CommentCreateSchema(BaseModel):
 
     @field_validator("parent_id", mode="before")
     @classmethod
-    def normalize_parent_id(cls, v):
+    def normalize_parent_id(cls, v: Any) -> Optional[int]:
         if v in (None, "", 0):
             return None
         return v

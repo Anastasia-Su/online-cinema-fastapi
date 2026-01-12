@@ -46,6 +46,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 from .utils import FakeRedis
 
+
 def pytest_configure(config):
     config.addinivalue_line("markers", "e2e: End-to-end tests")
     config.addinivalue_line("markers", "order: Specify the order of test execution")
@@ -63,8 +64,8 @@ settings = get_settings()
 
 send_comment_reply_email.delay = lambda *a, **k: None
 send_comment_like_email.delay = lambda *a, **k: None
-    
-    
+
+
 @pytest_asyncio.fixture(scope="function", autouse=True)
 async def reset_db(request):
     """
@@ -218,8 +219,7 @@ async def e2e_client():
     #     yield async_client
     async with LifespanManager(app):
         async with AsyncClient(
-            transport=ASGITransport(app=app),
-            base_url="http://test"
+            transport=ASGITransport(app=app), base_url="http://test"
         ) as client:
             yield client
 
