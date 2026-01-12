@@ -26,6 +26,7 @@ from src.routes import (
 
 security = HTTPBasic()
 
+
 def swagger_auth(credentials: HTTPBasicCredentials = Depends(security)):
     print("=== SWAGGER_AUTH CALLED ===")
     print(f"Username from client: '{credentials.username}'")
@@ -39,7 +40,7 @@ def swagger_auth(credentials: HTTPBasicCredentials = Depends(security)):
 
     if not user or not password:
         print("WARNING: SWAGGER_USER or SWAGGER_PASSWORD not set - allowing access")
-        return  
+        return
 
     if not (
         secrets.compare_digest(credentials.username, user)
@@ -56,15 +57,6 @@ def swagger_auth(credentials: HTTPBasicCredentials = Depends(security)):
     return credentials
 
 
-# app = FastAPI(
-#     title="Movies",
-#     description="Description of project",
-#     lifespan=lifespan,
-#     swagger_ui_parameters={
-#         "persistAuthorization": True,
-#     },
-# )
-
 app = FastAPI(
     title="Movies",
     description=(
@@ -75,10 +67,11 @@ app = FastAPI(
     swagger_ui_parameters={
         "persistAuthorization": True,
     },
-    docs_url=None,       
-    redoc_url=None,       
-    openapi_url=None,   
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None,
 )
+
 
 # 🔐 Protected Swagger
 @app.get("/docs", include_in_schema=False)
@@ -96,7 +89,6 @@ def openapi(auth=Depends(swagger_auth)):
         version="1.0.0",
         routes=app.routes,
     )
-
 
 
 app.include_router(admin_router)
